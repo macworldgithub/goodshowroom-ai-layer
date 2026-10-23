@@ -2,7 +2,7 @@
 
 Purpose: Track verified documentation and implementation progress for this repository.
 
-Status: Implementation - TICKET-017–024 Done; TICKET-001 In Review
+Status: Implementation - TICKET-017–024 Done; TICKET-001 Done
 
 ## Repository Discovery
 
@@ -23,11 +23,11 @@ Status: Implementation - TICKET-017–024 Done; TICKET-001 In Review
 - `docs/10-TEST-STRATEGY.md`: Approved by user (2026-10-22); test requirements are approved. Offline backend and frontend harness checks are recorded under TICKET-019/020; real application journeys and integration/live verification remain pending.
 - `docs/DECISIONS.md`: Implementation Plan approval and authorized ticket refinement recorded (2026-10-22); earlier entries retain chronology.
 - `planning/IMPLEMENTATION-PLAN.md`: Approved by user (2026-10-22); coverage/owner handoff synchronized to the refined register, whose decomposition is approved.
-- `Tickets.md`: Refined register approved; TICKET-017–024 Done, TICKET-001 In Review, 49 Backlog (2026-10-23).
+- `Tickets.md`: Refined register approved; TICKET-017–024 Done, TICKET-001 Done, 49 Backlog (2026-10-23).
 
 ## Implementation
 
-- TICKET-017–024 are Done after user review with recorded limits. TICKET-001 is In Review; the other 49 tickets remain Backlog. Accepted frontend tooling limits and the new TICKET-020 development-tool advisories remain documented separately.
+- TICKET-017–024 are Done after user review with recorded limits. TICKET-001 is Done; the other 49 tickets remain Backlog. Accepted frontend tooling limits and the new TICKET-020 development-tool advisories remain documented separately.
 - Local configuration prepared: operational URIs are in the ignored `.env`; `.env.example` contains no credentials. `byd_ai_layer` is the configured app database name; it has not been created or inspected. User-supplied values were preserved.
 - Earlier environment presence checks found operational/AI MongoDB settings, OpenAI key/model, Google client ID/secret, and session secret populated, and `NEXTAUTH_URL` empty at that time. Concurrent user configuration changes were preserved; values were not revalidated in this Tech Stack step. Configure the initial-admin email/callback during login setup. OpenAI/Google credentials, login, and application behavior have not been tested.
 
@@ -210,7 +210,7 @@ Next recommended after review: TICKET-001, verify the signed server identity bri
 
 ## TICKET-001
 
-TICKET-024 and its replay-safe cleanup refinement were approved and marked Done. TICKET-001 is In Review: eight Done, one In Review, 49 Backlog. Parent authored application code; GPT-6 Luna max authored tests. Added server-only jose signing and PyJWT verification, strict purpose/operation profiles, key lifecycle checks and current login validation through an injected trusted loader. Real keys were not generated/provisioned, and no live credentials/database were changed. Callback/HTTP transport and approval workflows remain their owning tickets.
+TICKET-024 and its replay-safe cleanup refinement were approved and marked Done. TICKET-001 is Done: eight Done, one In Review, 49 Backlog. Parent authored application code; GPT-6 Luna max authored tests. Added server-only jose signing and PyJWT verification, strict purpose/operation profiles, key lifecycle checks and current login validation through an injected trusted loader. Real keys were not generated/provisioned, and no live credentials/database were changed. Callback/HTTP transport and approval workflows remain their owning tickets.
 
 Verified uv locked sync, Ruff lint/format (20 files), backend offline suite 151 passed in 35.84 seconds, frontend lint/typecheck, one existing unit test and production build. The 48 new cases use real generated signatures and Node-to-Python interoperability. Runtime npm audit zero; full install audit retains the existing 8 dev findings. PyJWT direct-pin metadata zero listed advisories is not a full transitive audit. Initial fetch restrictions and a TypeScript byte-array type mismatch were resolved before final checks.
 
@@ -221,3 +221,5 @@ Next recommended after review: TICKET-027, persist verified staff mappings and t
 ## TICKET-001 approval and repository push
 
 User approved TICKET-001 with its recorded limits and authorized pushing the AI-layer repository before starting TICKET-027. Marked TICKET-001 Done; actual callback/transport, coordinated session invalidation and live database evidence remain pending as recorded. GitHub push result will be recorded after verification.
+
+Push status: local snapshot e891240 exists. Automatic approval review rejected the push to origin/main pending verification of repository ownership/privacy/default-branch protections. GitHub CLI is unavailable. No remote push succeeded and TICKET-027 has not started; awaiting confirmation of the exact destination and visibility before retrying. .env and generated files are excluded; configured-secret scan of the 74-file snapshot found zero matches.
