@@ -24,6 +24,11 @@ class StorageCapability(StrEnum):
     WRITE_ACCESS_REQUESTS = "write_access_requests"
     READ_LOGINS = "read_logins"
     WRITE_LOGINS = "write_logins"
+    READ_SETTINGS = "read_settings"
+    WRITE_SETTINGS = "write_settings"
+    READ_POLICY = "read_policy"
+    READ_CHATS = "read_chats"
+    WRITE_CHATS = "write_chats"
 
 
 class InternalAuthorizationContext(BaseModel):
@@ -49,7 +54,9 @@ class InternalAuthorizationContext(BaseModel):
         return self.actor_id is not None and capability in self.capabilities
 
 
-AuditAction = Literal["access_control_change", "security_outcome", "admin_review"]
+AuditAction = Literal[
+    "access_control_change", "security_outcome", "admin_review", "saved_turn_commit"
+]
 AuditOutcome = Literal["success", "denied", "failure"]
 AuditErrorCategory = Literal[
     "authorization_denied", "version_conflict", "persistence_failure"

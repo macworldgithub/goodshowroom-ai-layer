@@ -154,7 +154,7 @@ class FakeSession:
     def bind(self):
         return FakeSessionContext(self)
 
-    def start_transaction(self):
+    async def start_transaction(self, **_options):
         return FakeTransaction(self.events)
 
 

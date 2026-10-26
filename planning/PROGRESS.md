@@ -2,7 +2,7 @@
 
 Purpose: Track verified documentation and implementation progress for this repository.
 
-Status: Implementation - TICKET-017–024 Done; TICKET-001 Done
+Status: Implementation - 24 tickets Done; TICKET-010 In Review; 33 Backlog
 
 ## Repository Discovery
 
@@ -19,15 +19,15 @@ Status: Implementation - TICKET-017–024 Done; TICKET-001 Done
 - `docs/06-DATABASE-SCHEMA.md`: Approved by user (2026-10-22); designs are not provisioned, and open policy values/transaction capability remain unverified.
 - `docs/07-API-CONTRACTS.md`: Approved by user (2026-10-22), with UI-approved Markdown and Security-approved safeguard references. Starting limits are designs, not measured guarantees.
 - `docs/08-UI-UX-GUIDELINES.md`: Approved by user with recommended libraries (2026-10-22); the minimal frontend setup shell is verified under TICKET-018; functional UI journeys remain pending.
-- `docs/09-SECURITY.md`: Approved by user (2026-10-22); SEC-01 through SEC-15/settings are approved designs, with residual/open risks and no implemented/tested controls.
+- `docs/09-SECURITY.md`: Approved by user (2026-10-22); SEC-01 through SEC-15/settings are approved designs. Implemented module evidence is recorded in Tickets.md; remaining system controls and real integration verification are pending.
 - `docs/10-TEST-STRATEGY.md`: Approved by user (2026-10-22); test requirements are approved. Offline backend and frontend harness checks are recorded under TICKET-019/020; real application journeys and integration/live verification remain pending.
 - `docs/DECISIONS.md`: Implementation Plan approval and authorized ticket refinement recorded (2026-10-22); earlier entries retain chronology.
 - `planning/IMPLEMENTATION-PLAN.md`: Approved by user (2026-10-22); coverage/owner handoff synchronized to the refined register, whose decomposition is approved.
-- `Tickets.md`: Refined register approved; TICKET-017–024 Done, TICKET-001 Done, 49 Backlog (2026-10-23).
+- `Tickets.md`: Approved register; 19 tickets Done; TICKET-008 In Review; 38 Backlog.
 
 ## Implementation
 
-- TICKET-017–024 are Done after user review with recorded limits. TICKET-001 is Done; the other 49 tickets remain Backlog. Accepted frontend tooling limits and the new TICKET-020 development-tool advisories remain documented separately.
+- Nineteen tickets are Done with recorded limits. TICKET-008 is In Review; 38 tickets remain Backlog.
 - Local configuration prepared: operational URIs are in the ignored `.env`; `.env.example` contains no credentials. `byd_ai_layer` is the configured app database name; it has not been created or inspected. User-supplied values were preserved.
 - Earlier environment presence checks found operational/AI MongoDB settings, OpenAI key/model, Google client ID/secret, and session secret populated, and `NEXTAUTH_URL` empty at that time. Concurrent user configuration changes were preserved; values were not revalidated in this Tech Stack step. Configure the initial-admin email/callback during login setup. OpenAI/Google credentials, login, and application behavior have not been tested.
 
@@ -41,9 +41,18 @@ Status: Implementation - TICKET-017–024 Done; TICKET-001 Done
 - The Atlas connector reported reauthentication required. Account provisioning was not performed. Existing direct connections worked for the authorized read-only inspection.
 - Inspection used temporary scripts/driver dependencies outside the repo; no application dependencies or feature code were added. No database records, indexes, users, or permissions were changed. No application/browser tests ran.
 
-## Next Review Step
+## Current Implementation Step
 
-Review TICKET-020 after verification. TICKET-021 (app-only database and transaction primitives) is the next recommended ticket; TICKET-017 and TICKET-019 are Done. Start only after explicit authorization.
+TICKET-057 and TICKET-028 were approved with their recorded limits and marked Done on 2026-10-26. The user authorized TICKET-008 on 2026-10-26. Its TICKET-002, TICKET-007, TICKET-021, and TICKET-028 dependencies are Done.
+
+## TICKET-028 - Saved-chat parents - 2026-10-26
+
+- Added owner-bound saved-chat parent records with a generic title, version zero, optional expiry, and no transcript fields. A unique owner/request index supports safe replay; the same request UUID under another owner creates a separate session.
+- Added transaction-scoped approval, active-role, chat-capability, scope, and policy-version checks. Listing returns safe owner-only metadata for active, unexpired chats in a stable descending activity/ID order.
+- Added a separate encrypted chat-list cursor purpose using the existing Fernet key and five-minute limit. Temporary mode is denied before storage. App-only chat indexes are created only by an explicit initializer.
+- Updated the approved schema reference to include the owner-scoped creation request ID and the exact list/review indexes.
+- GPT-6 Luna medium authored the TICKET-028 tests. Focused tests passed (26); full offline Pytest passed (642 in 38.93 seconds). Ruff lint and format checks passed across the repository. `git diff --check` passed.
+- Tests used synthetic database fakes. No real MongoDB, API route, browser, or provider was exercised. No app dependency, key, or operational database changed. TICKET-028 is In Review; do not start the dependent saved-turn ticket until the user approves it.
 
 ## Ticket Refinement - 2026-10-22
 
@@ -220,6 +229,508 @@ Next recommended after review: TICKET-027, persist verified staff mappings and t
 
 ## TICKET-001 approval and repository push
 
-User approved TICKET-001 with its recorded limits and authorized pushing the AI-layer repository before starting TICKET-027. Marked TICKET-001 Done; actual callback/transport, coordinated session invalidation and live database evidence remain pending as recorded. GitHub push result will be recorded after verification.
+User approved TICKET-001 with its recorded limits and authorized pushing the AI-layer repository before starting TICKET-027. Marked TICKET-001 Done; TICKET-027 In Review; actual callback/transport, coordinated session invalidation and live database evidence remain pending as recorded. GitHub push result will be recorded after verification.
 
 Push status: local snapshot e891240 exists. Automatic approval review rejected the push to origin/main pending verification of repository ownership/privacy/default-branch protections. GitHub CLI is unavailable. No remote push succeeded and TICKET-027 has not started; awaiting confirmation of the exact destination and visibility before retrying. .env and generated files are excluded; configured-secret scan of the 74-file snapshot found zero matches.
+
+GitHub push completed: origin/main verified at 2126f89 after the user's explicit confirmation. The earlier automatic approval rejection was resolved; no force push. TICKET-027 then started as authorized. Its work remains local for review.
+
+## TICKET-027
+
+The requested GitHub push completed before implementation: remote main verified at 2126f89. TICKET-001 is Done with its approved limits. Parent wrote all application code; GPT-6 Luna max wrote tests only. Added strict staff mapping and typed settings records, capability-gated private methods, source-qualified index definitions, CAS/mapping versions and fence/audit handling. Added tzdata 2026.5 because Windows lacked IANA zone data. Missing values remain unset; disclosure is disabled. No live staff verification, index operation, DB write, retention policy activation or public admin route occurred.
+
+Final verification: locked sync, Ruff lint/format (22 files) passed; full offline suite 164 passed in 68.53 seconds, including 151 existing and 13 new tests. Focused suite passed 13. New-test formatting was corrected before the final run. Direct tzdata PyPI metadata zero listed advisories is not a full transitive audit. Real Mongo uniqueness/transaction/index evidence and source identity validation remain pending; combined criterion unchecked. TICKET-027 is In Review; nine Done, one In Review, 48 Backlog. These new changes remain uncommitted and unpushed for review.
+
+Next recommended after review and Done: TICKET-002, central RBAC/ABAC authorization with policy versions. Its TICKET-001/022 prerequisites are Done; it also needs TICKET-027. Wait for explicit authorization. The PRD release remains incomplete.
+
+## TICKET-027 approval and TICKET-002 start - 2026-10-26
+
+User approved TICKET-027 with its recorded limits. Marked it Done and started the authorized TICKET-002. Its TICKET-001/022/027 dependencies are Done. Real Mongo and transport evidence remains pending.
+
+
+## TICKET-002 review - 2026-10-26
+
+Added the central authorization service, explicit deny-default role capabilities,
+typed query/record constraints, snapshot app-policy loader and current-state
+rechecks. Parent wrote application code; GPT-6 Luna max authored all test changes.
+Role scopes cannot be widened by user scopes. Unknown grants/mappings deny;
+admin saved review, business reads and developer tracing remain distinct.
+Sensitive breakdowns remain disabled pending approved disclosure policy.
+
+Inspected the pinned PyMongo driver and corrected both transaction entry points
+to await start_transaction. Updated the two old test fakes to match its real API.
+Final Ruff lint/format passed (25 files); full offline Pytest passed 219 tests in
+50.88 seconds, including 55 new cases. Focused authorization passed 46. Git diff
+whitespace check passed after fixing added Markdown spaces. The shared uv cache
+was unreadable; checks used the installed .venv tools. No dependency install or
+lock change was needed for this ticket.
+
+Real Mongo snapshot/concurrency/fence evidence and future route/tool/history
+wiring, actual identity revalidation, required review audit and evidence filtering
+remain pending. The related combined criterion stays unchecked. No live database,
+source repo, environment/credential, frontend, provider or browser action occurred.
+Changes remain local. Ten tickets are Done, TICKET-002 In Review, 47 Backlog.
+
+Next after review and approval: TICKET-003, application-enforced operational read
+repository, because TICKET-021 is Done and it consumes the new authorization
+constraints. Wait for authorization. The project is not complete under the PRD.
+
+## TICKET-002 approval and TICKET-003 start - 2026-10-26
+
+User approved TICKET-002 with its recorded limits. Marked it Done and started TICKET-003. Its TICKET-002/021 dependencies are Done. Future route integration and real database evidence remain pending.
+
+
+## TICKET-003 review - 2026-10-26
+
+Added strict operational read contracts and a private repository with named list,
+count and same-database joined reads. Parent authored application code; GPT-6 Luna
+max authored the 56 new tests. Query builders authorize each source/field/scope,
+apply restrictions before counts/joins, and validate returned records under fresh
+policy. Recursive allowlists reject write/JavaScript/operator/collection escapes.
+Bounds cover time, row counts, projections, stable-ID pagination and incremental
+cursor materialization. Connections select only operational namespaces; app writes
+remain in their separate app repository. No production bindings are enabled.
+
+Final Ruff lint/format passed (28 files), full offline Pytest: 275 passed in 35.14
+seconds (219 existing plus 56 new), focused operational: 56 passed, and Git whitespace
+checks passed. These are synthetic/command-spy results. No isolated/live source
+read, query-plan/performance verification, operational mutation probe, provider or
+browser call was run. Source normalization and metric definitions belong to
+TICKET-004/005; HTTP cursors belong to TICKET-057. No dependency, credential,
+environment, source-repository/schema/index or frontend change occurred.
+
+Current register: 11 Done, TICKET-003 In Review, 46 Backlog. Backend/shared-server
+progress by count: 9/40 Done (about 23%). This group is BACKEND, DATABASE, SECURITY
+and INTEGRATION tickets plus backend setup TICKET-017 and test harness TICKET-019; it is not an
+effort-weighted completion estimate. Overall accepted count is 11/58 (about 19%).
+Frontend setup TICKET-018/020 is Done; the 10 FRONTEND feature tickets remain Backlog.
+TICKET-041 has satisfied dependencies and can start when authorized. Login,
+renderers and working chat require their registered API/response/security owners;
+full backend completion is not a prerequisite for starting the shell.
+
+Stop for review. Next backend candidate is TICKET-004 after TICKET-003 approval. The
+project remains incomplete under the PRD; no next ticket starts automatically.
+
+## TICKET-003 approval and TICKET-004 start - 2026-10-26
+
+User approved TICKET-003 with its recorded limits. Marked it Done and started TICKET-004. Its TICKET-003/027 dependencies are Done. No live database action is required for synthetic normalization checks.
+
+
+## TICKET-004 review - 2026-10-26
+
+Added explicit source date/provenance evidence, verified-site calendar and rolling
+periods, typed source identities, deterministic lead normalization, safe staff/site
+matching and four schema-backed CRM relationship helpers. Parent wrote application
+code; GPT-6 Luna max authored all new tests. Reviewed sibling schema/import code
+confirmed scrape/test-drive fallbacks in populated leadCreatedDate. Such values
+remain unverified rather than being called received dates.
+
+The concrete lead adapter builds reviewed field shapes plus configured exact site
+aliases. It has no original-date or staff attestation by default and enables no
+live tool. Added source_date read type for bounded mixed timestamp/string/null
+observations; direct date-range filtering on it stays unavailable. Aligned broad
+site binding rejection with normalization, including padded/case variants of All
+Locations. Current policy protects reads and normalized record release; coverage
+is explicitly the returned authorized page, not a source total. Source IDs and
+relationship links preserve type and namespace; unresolved is not nonexistence.
+
+Final Ruff lint/format passed (32 Python files); full offline Pytest passed 372
+cases in 39.45 seconds (275 existing plus 97 new). Focused checks passed 97. Git
+whitespace check passed. An intermediate new-test format issue was corrected by
+the assigned author before the final run. Integration of real application classes
+was exercised with fake database objects; no real source database was used.
+
+Live provenance, exact staff/site policy, source edge cases and query performance
+remain unverified. No source/schema/index/credential, environment, dependency,
+frontend, provider or browser change/action occurred. Twelve tickets are Done,
+TICKET-004 In Review, 45 Backlog. Changes remain local. The project is incomplete
+under the PRD.
+
+Next after review and approval: TICKET-005, MetricRegistry and the first approved
+lead-count definition, because its TICKET-002 dependency is Done. No next ticket
+starts automatically.
+
+## TICKET-004 approval and TICKET-005 start - 2026-10-26
+
+User approved TICKET-004 with its recorded limits. Marked it Done and started TICKET-005. Its TICKET-002/004 dependencies are Done. Synthetic rules are not approval of live identity, exclusion or date-provenance semantics.
+
+
+## TICKET-005 review - 2026-10-26
+
+Added a versioned code-owned MetricRegistry and deterministic Q-01 service with
+explicit source/identity/exclusion/provenance/timezone/filter/coverage/access
+rules. Parent wrote application code; GPT-6 Luna max authored the 39 new metric
+tests and the existing operational interface assertion update. The default live
+identity/exclusion rules are unreviewed and return unsupported without a query;
+converted_leads and Q-02 through Q-05 remain disabled.
+
+A narrow operational count_date_cohort read authorizes the fixed Q-01 source and
+all record/field/metric scope before one match/projection/five-facet aggregation.
+It does not count a page or add page sizes. BSON date reliability is explicit;
+missing/unverified/string dates and unknown eligibility remain visible in full
+query coverage. Exact values exist only for complete evidence; partial results
+have a labeled verified subset and null exact value. Unknowns/source errors do
+not become zero. Current policy is rechecked before release. Internal facts need
+TICKET-006 disclosure and TICKET-007 response validation before user delivery.
+
+Final Ruff lint/format passed (34 Python files); full offline Pytest passed 411
+cases in 41.88 seconds (372 existing plus 39 new). Focused metric/operational
+suite passed 95. Git whitespace check passed. A local expression evaluator and
+fake database exercise real app classes but do not verify a MongoDB server.
+Official facet/type guidance was checked; no dependency was installed or changed.
+
+Real canonical-lead/exclusion/date reviews, MongoDB query semantics/performance
+and concurrent-source evidence remain pending. No source/DB/schema/index,
+credential/environment, provider, browser, frontend or deployment action occurred.
+Thirteen tickets are Done, TICKET-005 In Review, 44 Backlog. Work remains local;
+the project is incomplete under the PRD.
+
+Next after review and approval: TICKET-006, aggregate disclosure and small-group
+safeguards. TICKET-002 is Done; no next ticket starts automatically.
+
+## TICKET-005 approval and TICKET-006 start - 2026-10-26
+
+User approved TICKET-005 with its recorded limits. Marked it Done and started TICKET-006. Both dependencies are Done. Disclosure rules remain unapproved; default withholding is required.
+
+## TICKET-006 review - 2026-10-26
+
+Added the internal aggregate disclosure boundary and one minimized output contract
+for future text/visual consumers. Current metric/tool/site/field/record grants are
+checked before calculation and rechecked before returning. Default withholding
+does not query source counts. Sensitive breakdowns stay denied. No model-defined
+threshold, query ledger, arbitrary filter/group/export or complementary fallback
+is enabled.
+
+The positive test seam is intentionally narrow: a reviewed fixed complete Q-01
+publication, one per metric/site, an explicit minimum group and full-site grants.
+Exact evidence including retrieval timestamp must match; changed counts/windows,
+subsets and partial/zero/unavailable results stay withheld. This is not a general
+live differencing engine. Prior/external publication review remains manual; real
+disclosure values and live releases remain unapproved. Temporary Chat gains no
+persistent query history. Future ResponseBuilder must use the permitted payload
+and perform its own release checks.
+
+Parent authored application code. GPT-6 Luna max authored 33 new tests. Focused
+tests passed 33. Full offline Pytest passed 444 tests in 129.30 seconds. Ruff lint
+and format checks passed (36 Python files); Git whitespace check passed. Tests
+cover role/field/site/metric denial, synthetic thresholds, evidence changes,
+selected/assigned scopes, repeated requests, restart defaults and revocation.
+Actual metric/read classes run against fake database fixtures; no real MongoDB,
+provider, HTTP/browser or visualization integration is verified by these tests.
+
+Files added: src/goodshowroom_ai/disclosure.py, tests/test_disclosure.py. Files
+updated: README.md, Tickets.md, planning/PROGRESS.md. No dependency/environment,
+credential/schema/index, source repository or frontend change occurred. Work
+remains local. Current register: 14 Done, TICKET-006 In Review, 43 Backlog.
+
+Stop for user review. Next after approval: TICKET-007, ResponseBuilder, because
+its TICKET-005 dependency is Done and TICKET-006 will then be accepted. The
+project remains incomplete under the PRD; no next ticket starts automatically.
+
+## TICKET-006 approval and TICKET-007 start - 2026-10-26
+
+User approved TICKET-006 with its recorded limits. Marked it Done and started TICKET-007. Both dependencies are Done. Response construction must preserve default aggregate withholding and cannot enable zero/partial/live counts without disclosure approval.
+
+## TICKET-007 review - 2026-10-26
+
+Added a deterministic Q-01 ResponseBuilder with closed fact/evidence/source
+references and one dataset for the answer/card/table. It authorizes the trusted
+chat owner/login and current data grants before disclosure, validates returned
+site/metric/period/policy evidence, and rechecks authorization before returning.
+All model prose is rebuilt; unknown numbers, markup, arbitrary visual options,
+inconsistent links/values, bad calendar/timezone boundaries and oversized output
+cannot enter a successful response. Safe source labels, scope, dates, freshness
+and versions accompany permitted facts; internal coverage counters stay private.
+
+Fixed content-free notices distinguish partial/missing/unsupported/clarification
+and disclosure withholding. Source/access failures stay errors. The schema has
+a distinct complete-zero representation, but accepted TICKET-006 still withholds
+zero/partial/live numerical results. Positive fixtures are synthetic publication
+approvals only. No new business/disclosure rule was approved by these tests.
+
+Parent authored application code. GPT-6 Luna max authored 53 new tests. Focused
+response tests passed 53. Full offline Pytest passed 497 tests in 47.89 seconds.
+Ruff lint/format passed (38 Python files); Git whitespace check passed. An
+integrated case uses actual metric/disclosure/response classes and fake source
+database fixtures. Tests cover error propagation, policy revocation, owner/login/
+site/metric checks, graph/number/markup mutations, zero withholding, period
+consistency, strict parsing and byte bounds. Real MongoDB/provider/HTTP/browser
+behavior and saved-chat ownership storage remain unverified here.
+
+Files added: src/goodshowroom_ai/responses.py, tests/test_responses.py. Files
+updated: README.md, Tickets.md, planning/PROGRESS.md. No dependency/lockfile,
+environment/credential, source repository/schema/index, frontend, deployment or
+push change/action occurred. Changes remain local. Current register: 15 Done,
+TICKET-007 In Review, 42 Backlog. The project remains incomplete under the PRD.
+
+Stop for user review. Recommend TICKET-030 next after approval: its setup/storage
+dependencies are Done, and shared API/error contracts support the next integration
+steps. TICKET-008 is not yet eligible: it needs TICKET-028, which needs TICKET-057.
+No next ticket starts automatically, and no dependency has been bypassed.
+
+## TICKET-007 approval and TICKET-030 start - 2026-10-26
+
+User approved TICKET-007 with its recorded limits. Marked it Done and started TICKET-030. All five setup/storage dependencies are Done. Shared public contracts must reuse the validated response and preserve disclosure/authorization boundaries.
+
+## TICKET-030 review - 2026-10-26
+
+Added strict public create/turn/result/error contracts, raw JSON validation, safe
+FastAPI error handling and an offline public OpenAPI export. The factory still
+has no business/docs routes. A failure boundary prevents unexpected exception
+content from escaping to ordinary server logging; after response start only a
+fixed safe transmission error propagates. Known errors use a fixed status/message/
+retry catalog and safe response headers. Typed labels are not proof of ownership,
+permission, disclosure approval or a completed commit.
+
+Generated frontend types, static validators, declarations and a limit/error catalog
+from the backend export. The raw frontend parser uses the same strict structural
+and semantic boundaries. Both languages exercise 18 shared synthetic samples.
+Current wire numbers are JavaScript-safe integers; defaults/nulls/arrays are
+explicit except optional error commit_state. Structural bounds are depth 20 and
+20,000 nodes plus approved byte caps. Pre-read ingress/admission/cursors still
+belong to TICKET-057. Existing disclosure/zero/partial/live-data limits remain.
+
+Parent authored application/tooling code. GPT-6 Luna max authored both test files
+and the shared fixture file. Final full Pytest: 593 passed in 50.36 seconds; focused
+API tests: 96 passed. Ruff lint/format: passed (42 files). Backend export and
+frontend generation drift checks: passed. Frontend unit tests: 43 passed, no failed
+or skipped cases (42 new plus the existing home page). Whole-frontend ESLint,
+TypeScript and Next.js build passed. Git whitespace check passed. Initial frontend
+fixture import/add-property helper issues were corrected before the final run.
+Synthetic ASGI/fixture checks do not verify real MongoDB/provider/browser behavior.
+
+Added: src/goodshowroom_ai/api_contracts.py, api_http.py, export_contracts.py;
+contracts/openapi.json, fixtures.json; tests/test_api_contracts.py;
+frontend/scripts/generate-contracts.mjs; frontend/src/lib/api-contracts.ts,
+api-contracts.test.tsx; frontend/src/lib/generated/api-types.ts, validators.cjs,
+validators.d.cts, contract-meta.json. Updated: src/goodshowroom_ai/app.py;
+frontend/package.json, package-lock.json, eslint.config.mjs; README.md, Tickets.md,
+planning/PROGRESS.md. Pinned Ajv/ajv-formats/jsonc-parser for schema/JSON checks and
+openapi-typescript for offline generation. Cached a local npm tool in ignored
+.npm-cache because this shell lacked npm. No generator service or extra runtime
+infrastructure was added.
+
+No source database/schema/index/credential, environment, source repository,
+provider, deployment or push change/action occurred. Work remains local. Current
+register: 16 Done, TICKET-030 In Review, 41 Backlog. The PRD is not complete.
+
+Stop for review. Recommend TICKET-057 next after approval, because its other two
+dependencies are Done. It provides admission/limits/cursor primitives required by
+TICKET-028 saved sessions, then TICKET-008 atomic turns. No next ticket starts
+automatically and no dependency is bypassed.
+
+Final workspace check found a separate AGENTS.md edit changing future test
+authoring from max to medium. Preserved it without modification. TICKET-030's
+test authors actually used max, as the file required at the start of this work;
+the completion evidence records that actual setting.
+
+## TICKET-030 approval and TICKET-057 start - 2026-10-26
+
+User approved TICKET-030 with its recorded limits. Marked it Done and started
+TICKET-057. Its TICKET-002, TICKET-019 and TICKET-030 dependencies are Done.
+TICKET-057 will enforce the already approved API/Security limits, in-process
+admission, deadlines and retry budgets, and encrypted caller/policy-bound cursors.
+No routes, paid model calls, live database access, or persistent Temporary Chat
+state are authorized by this ticket.
+
+## TICKET-057 implementation review - 2026-10-26
+
+Added the pre-parse request-body cap, shared bounded execution values, in-process
+user-rate/chat-lock admission, deadline and call/token/result checks, and a Fernet
+cursor codec. The codec binds caller, typed filter digest, fixed ascending `_id`
+order, and policy version, and rejects tampered or expired tokens. User and chat
+lock metadata are cleaned from memory; no chat content or temporary transcript is
+stored. Cursor use remains unavailable until a separate purpose-specific key is
+configured. The current app still has no business routes.
+
+GPT-6 Luna medium authored the new tests. Full offline Pytest passed 624 tests in
+52.29 seconds. Ruff lint/format, offline lock check, OpenAPI export check and Git
+whitespace check passed. The sibling backends were reviewed for existing list
+patterns; their offset pagination and generic rate settings were not copied.
+No database/provider/browser or app feature integration was tested. TICKET-057 is
+In Review; TICKET-028 becomes the next eligible ticket after this review and
+approval. The project remains incomplete under the PRD.
+
+## TICKET-057 approval and TICKET-028 start - 2026-10-26
+
+User approved TICKET-057 with its recorded limits. Marked it Done and started
+TICKET-028. Its TICKET-002, TICKET-021 and TICKET-057 dependencies are Done.
+TICKET-028 owns saved-chat parent creation/listing only; turn commits, history,
+and deletion remain with TICKET-008 and TICKET-029.
+
+## TICKET-008 - Saved-turn commits - 2026-10-26
+
+Added a typed saved-turn command and record. The repository accepts only a
+validated `BuiltResponse`; model calls and operational reads stay outside the
+commit method. Attempt metadata is content-free apart from a request digest.
+The commit transaction rechecks app policy, owner, role, and login, advances the
+access-control fence, inserts the complete turn, updates parent version and
+validated Q-01 state, and appends a fixed content-free audit event. The turn
+stores the owner, request/version binding, structured evidence, metric/policy
+versions, measured BSON size, and parent expiry. Unique request and sequence
+indexes are explicit. Unknown commit results are looked up; unresolved results
+stay blocked and are not reported as saved.
+
+GPT-6 Luna max authored `tests/test_chat_turns.py`. Focused saved-turn tests
+passed 24; saved-chat/admission regressions passed 86; the full offline suite
+passed 666 tests. Ruff check and formatting passed (54 files), Python compileall
+passed, and `git diff --check` passed. These tests use a rollback-aware fake and
+do not prove real MongoDB transactions or indexes.
+
+TICKET-008 was In Review at the time of this entry. The required real isolated
+MongoDB atomicity and index check was not available: the integration harness
+blocks database tests without a verified isolated adapter and target. No
+connection URI value was used, and no database/index setup ran. The user later
+approved TICKET-008 with this limitation and directed that it be marked Done;
+the real app-test-DB proof remains a release gate under TICKET-029.
+
+## TICKET-008 approval and TICKET-029 start - 2026-10-26
+
+The user approved TICKET-008 and directed it to be marked Done. Recorded the
+offline rollback-aware tests as accepted ticket evidence and retained the real
+MongoDB transaction/index proof as an explicit release verification item. No
+database was contacted. Started TICKET-029 because its dependencies TICKET-008
+and TICKET-028 are now Done. TICKET-029 will add safe saved-history reads,
+separate audited administrator review, and retryable owner deletion. It must not
+write to either operational database.
+
+## TICKET-029 implementation review - 2026-10-26
+
+Implemented owner and separate administrator saved-history reads with encrypted,
+snapshot-bound cursors and current-grant filtering. Unsafe turns receive a fixed
+notice. Administrator review checks its own capability, records a content-free
+audit event, fails closed if audit writing fails, and never changes agent
+context. Owner deletion marks the parent as deleting, clears derived context,
+blocks new turns, and removes turns in bounded idempotent batches. Incomplete
+cleanup returns a safe retryable `cleanup_pending` response.
+
+GPT-6 Luna max authored the new history/access tests and cleanup error tests.
+Focused saved-turn/history/API tests passed 141 tests. Full offline Pytest
+passed 687 tests in 43.31 seconds. Ruff lint/format checks, Python compileall,
+and `git diff --check` passed. No database was contacted, no operational data
+was written, and all changes remain local.
+
+The isolated MongoDB read/delete/commit race, saved-turn index/atomicity, and
+database failure checks remain unverified because no verified isolated app
+database target is configured. Offline test doubles do not prove real database
+behavior. TICKET-029 is In Review; wait for user review and do not proceed to a
+dependent ticket until approval. The project remains incomplete under the PRD.
+
+## TICKET-029 approval and TICKET-011 start - 2026-10-26
+
+The user approved TICKET-029 and directed it to be marked Done. The real isolated
+MongoDB transaction/index/race checks remain a release verification gate; user
+approval does not prove database behavior. Started TICKET-011 because its
+TICKET-017 and TICKET-019 dependencies are Done. This ticket configures explicit
+SDK tracing controls using in-memory capture tests. Real trace export remains
+off pending TICKET-012 sanitization and provider access/retention review.
+
+## TICKET-011 implementation review - 2026-10-26
+
+Added explicit SDK tracing policy and app lifecycle wiring. Missing/unknown
+environment or missing/invalid enablement disables tracing; only explicit
+development enablement permits diagnostic creation. Sensitive capture is always
+false. Global, per-run, and root controls agree; static workflow names and fresh
+random diagnostic IDs carry no business/user/session values. Supported model
+request settings use store=False independently of tracing. Closed/replaced
+runtimes deny tracing. The default native exporter is never constructed, and
+the application attaches no processor pending the TICKET-012 safety work.
+
+Pinned and locked openai-agents 0.24.0 and openai 3.36.1. Parent wrote application
+code; GPT-6 Luna max wrote tests/test_tracing.py. Its 47 tests passed. Final full
+offline Pytest passed 734 tests in 80.04 seconds. Ruff check/format (59 files),
+offline lock check, installed dependency compatibility, public OpenAPI export,
+Python compileall, and Git whitespace checks passed. Startup and SDK APIs were
+checked against current official guidance and the installed exact SDK source.
+
+Tests used synthetic in-memory SDK capture only; no database, model, or trace
+service was contacted. Real provider export/access/retention and actual agent
+request wiring remain unverified. No browser feature, operational schema,
+credential, environment value, or source repository was changed. Work remains
+local. TICKET-011 is In Review. After approval, TICKET-012 is the next foundation
+ticket and must sanitize payloads before any native export can be enabled.
+The project remains incomplete under the PRD.
+
+## TICKET-011 approval and TICKET-012 start - 2026-10-26
+
+The user approved TICKET-011 with its recorded limits and directed it to be
+marked Done. Started TICKET-012 to sanitize copied SDK trace payloads before
+native export. Tests use an in-memory HTTP destination with synthetic records.
+No real export is authorized by this ticket; provider access/retention review
+remains outstanding. The operational database release checks remain outstanding.
+
+## TICKET-012 implementation review - 2026-10-26
+
+Added metadata-only copy/validation at the native trace export boundary and
+frozen safe snapshots before the SDK batch queue. One processor replaces the
+default path; per-item keys and alternative endpoints are excluded. Unknown
+fields, content, provider response IDs and raw errors are removed or rejected.
+SDK/transport logs emit only fixed diagnostic categories. Bounded batching,
+two-second single-attempt export, safe worker/flush/shutdown failure handling,
+and old-queue discard prevent a parallel or raw fallback export path.
+
+Parent wrote application code. GPT-6 Luna max wrote tests/test_trace_export.py.
+All 68 focused export tests passed. Full offline Pytest passed 802 tests in
+74.61 seconds. Ruff check/format passed across 61 Python files. Offline lock,
+OpenAPI export, Python compileall and Git whitespace checks passed. No package
+or lockfile changed. Tests use synthetic SDK objects and in-memory native HTTP
+capture; no real data, credentials, database, model or trace service was used.
+
+The app factory keeps native export off until provider access/retention review
+and explicit trusted startup wiring. Real provider ingestion and developer
+dashboard access remain unverified. SDK upgrades must recheck private deadline
+and shutdown-hook compatibility. Existing real MongoDB release checks remain
+pending. Work is local. TICKET-012 is In Review; wait for user review. After
+approval, TICKET-009 is the next foundation task because its other dependencies
+are Done. The project remains incomplete under the PRD.
+
+## TICKET-012 approval and TICKET-009 start - 2026-10-26
+
+The user approved TICKET-012 and directed it to be marked Done. Started
+TICKET-009; its registered dependencies are Done. Provider export/access/retention
+and real MongoDB release evidence remain unverified. This ticket builds the
+single-agent execution service with explicit authorized context, existing typed
+Q-01 tools, deterministic responses, and final-turn persistence. Tests use
+synthetic dependencies. The user requested faster execution: use focused checks
+during implementation and one final regression run, without expanding scope.
+
+## TICKET-009 implementation review - 2026-10-26
+
+Added one primary SDK agent service, explicit permitted recent-history loading,
+whole-pair context bounds and an ephemeral deterministic state hint. The agent
+selects an approved Q-01 tool or typed notice plan. Current authorization limits
+tool/site access; ResponseBuilder produces all authoritative numbers and visuals.
+Model prose and SDK intermediate items are never committed. Saved attempt/replay,
+atomic commit and final release checks use the existing repositories. Temporary
+dispatch is an injected memory interface only; TICKET-010 owns its lifecycle.
+
+Parent wrote application code. Luna max authored 33 focused tests before the
+user's latest direction. The user then required Luna medium for all test work
+and execution. Read AGENTS.md again; Luna medium ran the final full offline
+suite: 835 passed in 82.20 seconds. Ruff lint/format (66 files), lockfile, public
+API-schema export, compilation and Git whitespace checks passed. The real SDK
+runner was exercised with a fake model; no provider/database/network call ran.
+No package, persistent schema, credentials or source repositories changed.
+
+Live model quality, provider export/access/retention and real MongoDB evidence
+remain unverified. HTTP/browser integration and Temporary Chat lifecycle remain
+with later tickets. Work is local. TICKET-009 is In Review; after approval,
+TICKET-010 is the next foundation task because its other dependencies are Done.
+The project remains incomplete under the PRD.
+
+## TICKET-009 approval and TICKET-010 start - 2026-10-26
+
+The user approved TICKET-009 and directed it to be marked Done. Started
+TICKET-010 because its registered dependencies are Done. The ticket adds
+single-process temporary context, cancellation/end/logout/expiry cleanup and
+safe sign-out coordination seams. Route, NextAuth integration and UI wiring
+remain with their registered tickets. Luna medium writes tests and runs checks;
+parent writes application code. Existing real database/provider limits remain.
+
+## TICKET-010 implementation review - 2026-10-26
+
+Added an explicitly injected process-memory Temporary Chat store and app lifecycle cleanup. User/login/generation binding, current authorization, bounded request identity retention, expiry and final commit/release checks prevent reuse and late resurrection. Logout clears local context before backend revocation; the frontend coordination helper attempts sign-out even after cleanup failures or timeouts. Verified lease renewal does not reset chat idle time or revive an expired context. No durable transcript fallback exists.
+
+Parent wrote application code. GPT-6 Luna medium wrote the tests and ran checks. Focused backend tests passed 26; full offline Pytest passed 844 in 109.84 seconds. Frontend unit tests passed 48. Ruff lint/format, compileall, OpenAPI export, TypeScript, ESLint and generated frontend contract checks passed. Tests use synthetic records, clocks, cancellation and callbacks. No live database, model, Google or browser call ran.
+
+README and Tickets.md record the lifecycle, exact check commands and remaining integration limits. NextAuth/HTTP/UI wiring remains in TICKET-031/039/048. Real MongoDB and provider evidence remain unverified. Work is local; TICKET-010 is In Review. Wait for review. After approval, TICKET-013 is the next foundation task. The project is not yet complete under the PRD.

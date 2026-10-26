@@ -1,0 +1,983 @@
+{
+  "components": {
+    "schemas": {
+      "AnswerPeriod": {
+        "additionalProperties": false,
+        "properties": {
+          "end_local": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?(?:Z|[+-]\\d{2}:\\d{2})$",
+            "title": "End Local",
+            "type": "string"
+          },
+          "end_utc": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?(?:Z|[+-]\\d{2}:\\d{2})$",
+            "title": "End Utc",
+            "type": "string"
+          },
+          "label": {
+            "const": "Previous seven completed dealership calendar days",
+            "default": "Previous seven completed dealership calendar days",
+            "title": "Label",
+            "type": "string"
+          },
+          "start_local": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?(?:Z|[+-]\\d{2}:\\d{2})$",
+            "title": "Start Local",
+            "type": "string"
+          },
+          "start_utc": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?(?:Z|[+-]\\d{2}:\\d{2})$",
+            "title": "Start Utc",
+            "type": "string"
+          },
+          "timezone": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_local",
+          "end_local",
+          "start_utc",
+          "end_utc",
+          "timezone",
+          "label"
+        ],
+        "title": "AnswerPeriod",
+        "type": "object"
+      },
+      "AnswerScope": {
+        "additionalProperties": false,
+        "properties": {
+          "record_scope": {
+            "const": "full_permitted_site",
+            "default": "full_permitted_site",
+            "title": "Record Scope",
+            "type": "string"
+          },
+          "site": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Site",
+            "type": "string"
+          }
+        },
+        "required": [
+          "site",
+          "record_scope"
+        ],
+        "title": "AnswerScope",
+        "type": "object"
+      },
+      "ApiError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "commit_state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "not_committed",
+                  "unknown"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Commit State"
+          },
+          "message": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "ApiError",
+        "type": "object"
+      },
+      "Bindings": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "const": "label",
+            "default": "label",
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "const": "value",
+            "default": "value",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "Bindings",
+        "type": "object"
+      },
+      "ChatResultEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ChatTurnData"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "ChatResultEnvelope",
+        "type": "object"
+      },
+      "ChatTurnData": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "enum": [
+              "saved",
+              "temporary"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "persistence": {
+            "enum": [
+              "committed",
+              "not_saved"
+            ],
+            "title": "Persistence",
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/StructuredResponse"
+          },
+          "session_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "session_id",
+          "mode",
+          "version",
+          "persistence",
+          "response"
+        ],
+        "title": "ChatTurnData",
+        "type": "object"
+      },
+      "Claim": {
+        "additionalProperties": false,
+        "properties": {
+          "fact_ids": {
+            "default": [
+              "fact_total_leads"
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "const": "fact_total_leads",
+                "type": "string"
+              }
+            ],
+            "title": "Fact Ids",
+            "type": "array"
+          },
+          "text": {
+            "maxLength": 200,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "fact_ids"
+        ],
+        "title": "Claim",
+        "type": "object"
+      },
+      "Column": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "enum": [
+              "label",
+              "value"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "enum": [
+              "Metric",
+              "Count"
+            ],
+            "title": "Label",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "string",
+              "number"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "const": "leads",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Unit"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type",
+          "unit"
+        ],
+        "title": "Column",
+        "type": "object"
+      },
+      "Coverage": {
+        "additionalProperties": false,
+        "properties": {
+          "counts_disclosed": {
+            "const": false,
+            "default": false,
+            "title": "Counts Disclosed",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "complete",
+              "partial",
+              "unknown",
+              "suppressed"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "counts_disclosed"
+        ],
+        "title": "Coverage",
+        "type": "object"
+      },
+      "CreateChatRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "title": "CreateChatRequest",
+        "type": "object"
+      },
+      "Dataset": {
+        "additionalProperties": false,
+        "properties": {
+          "columns": {
+            "default": [
+              {
+                "key": "label",
+                "label": "Metric",
+                "type": "string",
+                "unit": null
+              },
+              {
+                "key": "value",
+                "label": "Count",
+                "type": "number",
+                "unit": "leads"
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "$ref": "#/components/schemas/Column"
+              },
+              {
+                "$ref": "#/components/schemas/Column"
+              }
+            ],
+            "title": "Columns",
+            "type": "array"
+          },
+          "dataset_id": {
+            "const": "dataset_total_leads",
+            "default": "dataset_total_leads",
+            "title": "Dataset Id",
+            "type": "string"
+          },
+          "next_cursor": {
+            "default": null,
+            "title": "Next Cursor",
+            "type": "null"
+          },
+          "rows": {
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "$ref": "#/components/schemas/MetricRow"
+              }
+            ],
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "dataset_id",
+          "columns",
+          "rows",
+          "next_cursor"
+        ],
+        "title": "Dataset",
+        "type": "object"
+      },
+      "ErrorCode": {
+        "enum": [
+          "authentication_required",
+          "session_expired",
+          "approval_required",
+          "access_denied",
+          "not_found",
+          "method_not_allowed",
+          "version_conflict",
+          "idempotency_conflict",
+          "request_in_progress",
+          "policy_changed",
+          "temporary_unavailable",
+          "payload_too_large",
+          "invalid_request",
+          "rate_limited",
+          "model_failure",
+          "response_invalid",
+          "source_unavailable",
+          "authorization_unavailable",
+          "persistence_failed",
+          "cleanup_pending",
+          "deadline_exceeded",
+          "internal_error"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "ErrorEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ApiError"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "error"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "Evidence": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "const": "evidence_total_leads",
+            "default": "evidence_total_leads",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "metric_id": {
+            "const": "total_leads",
+            "default": "total_leads",
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "metric_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Metric Version",
+            "type": "integer"
+          },
+          "provenance": {
+            "const": "reviewed_metric_definition",
+            "default": "reviewed_metric_definition",
+            "title": "Provenance",
+            "type": "string"
+          },
+          "source_id": {
+            "const": "source_leads",
+            "default": "source_leads",
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "source_id",
+          "metric_id",
+          "metric_version",
+          "provenance"
+        ],
+        "title": "Evidence",
+        "type": "object"
+      },
+      "Fact": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_ids": {
+            "default": [
+              "evidence_total_leads"
+            ],
+            "maxItems": 1,
+            "minItems": 1,
+            "prefixItems": [
+              {
+                "const": "evidence_total_leads",
+                "type": "string"
+              }
+            ],
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "fact_id": {
+            "const": "fact_total_leads",
+            "default": "fact_total_leads",
+            "title": "Fact Id",
+            "type": "string"
+          },
+          "metric_id": {
+            "const": "total_leads",
+            "default": "total_leads",
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "metric_version": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Metric Version",
+            "type": "integer"
+          },
+          "unit": {
+            "const": "leads",
+            "default": "leads",
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Value",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "fact_id",
+          "metric_id",
+          "metric_version",
+          "value",
+          "unit",
+          "evidence_ids"
+        ],
+        "title": "Fact",
+        "type": "object"
+      },
+      "MetricRow": {
+        "additionalProperties": false,
+        "properties": {
+          "fact_id": {
+            "const": "fact_total_leads",
+            "default": "fact_total_leads",
+            "title": "Fact Id",
+            "type": "string"
+          },
+          "label": {
+            "const": "Total leads",
+            "default": "Total leads",
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Value",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "value",
+          "fact_id"
+        ],
+        "title": "MetricRow",
+        "type": "object"
+      },
+      "Source": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "const": "Lead records",
+            "default": "Lead records",
+            "title": "Label",
+            "type": "string"
+          },
+          "source_id": {
+            "const": "source_leads",
+            "default": "source_leads",
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "label"
+        ],
+        "title": "Source",
+        "type": "object"
+      },
+      "StructuredResponse": {
+        "additionalProperties": false,
+        "description": "Bounded first-slice API response, with a closed evidence graph.\n\nRendering is TICKET-040. Additional metrics/charts/record rows need their own\ntyped extension; arbitrary model JSON/configuration is never accepted.",
+        "properties": {
+          "answer": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Answer",
+            "type": "string"
+          },
+          "claims": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Claim"
+            },
+            "maxItems": 1,
+            "title": "Claims",
+            "type": "array"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "datasets": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Dataset"
+            },
+            "maxItems": 1,
+            "title": "Datasets",
+            "type": "array"
+          },
+          "evidence": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "maxItems": 1,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "facts": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Fact"
+            },
+            "maxItems": 1,
+            "title": "Facts",
+            "type": "array"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnswerPeriod"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Policy Version",
+            "type": "integer"
+          },
+          "retrieved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?(?:Z|[+-]\\d{2}:\\d{2})$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Retrieved At"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnswerScope"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "sources": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "maxItems": 1,
+            "title": "Sources",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "complete",
+              "partial",
+              "clarification",
+              "unsupported",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "visuals": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Visual"
+            },
+            "maxItems": 2,
+            "title": "Visuals",
+            "type": "array"
+          },
+          "warnings": {
+            "default": [],
+            "items": {
+              "enum": [
+                "incomplete_data",
+                "missing_data",
+                "question_not_supported",
+                "scope_required",
+                "disclosure_withheld"
+              ],
+              "type": "string"
+            },
+            "maxItems": 1,
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "answer",
+          "claims",
+          "facts",
+          "datasets",
+          "visuals",
+          "sources",
+          "evidence",
+          "coverage",
+          "warnings",
+          "period",
+          "scope",
+          "retrieved_at",
+          "policy_version"
+        ],
+        "title": "StructuredResponse",
+        "type": "object"
+      },
+      "TurnRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "message": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "message",
+          "expected_version"
+        ],
+        "title": "TurnRequest",
+        "type": "object"
+      },
+      "Visual": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset_id": {
+            "const": "dataset_total_leads",
+            "default": "dataset_total_leads",
+            "title": "Dataset Id",
+            "type": "string"
+          },
+          "field_bindings": {
+            "$ref": "#/components/schemas/Bindings",
+            "default": {
+              "label": "label",
+              "value": "value"
+            }
+          },
+          "kind": {
+            "enum": [
+              "card",
+              "table"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "dataset_id",
+          "field_bindings"
+        ],
+        "title": "Visual",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Good Showroom public contract foundation",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {},
+  "x-contract-limits": {
+    "depth": 20,
+    "max_integer": 9007199254740991,
+    "nodes": 20000,
+    "request_bytes": 65536,
+    "response_bytes": 1048576
+  },
+  "x-contract-stage": "Q-01 schemas only; no active business endpoints",
+  "x-error-catalog": {
+    "access_denied": {
+      "allows_commit_state": false,
+      "message": "You do not have access to this information.",
+      "retryable": false,
+      "status": 403
+    },
+    "approval_required": {
+      "allows_commit_state": false,
+      "message": "Administrator approval is required.",
+      "retryable": false,
+      "status": 403
+    },
+    "authentication_required": {
+      "allows_commit_state": false,
+      "message": "Please sign in.",
+      "retryable": false,
+      "status": 401
+    },
+    "authorization_unavailable": {
+      "allows_commit_state": false,
+      "message": "Access could not be verified.",
+      "retryable": false,
+      "status": 503
+    },
+    "cleanup_pending": {
+      "allows_commit_state": true,
+      "message": "Cleanup is not complete.",
+      "retryable": true,
+      "status": 503
+    },
+    "deadline_exceeded": {
+      "allows_commit_state": true,
+      "message": "The request timed out. Check its status before retrying.",
+      "retryable": false,
+      "status": 504
+    },
+    "idempotency_conflict": {
+      "allows_commit_state": false,
+      "message": "This request ID was used for a different request.",
+      "retryable": false,
+      "status": 409
+    },
+    "internal_error": {
+      "allows_commit_state": true,
+      "message": "The request could not be completed.",
+      "retryable": false,
+      "status": 500
+    },
+    "invalid_request": {
+      "allows_commit_state": false,
+      "message": "The request is invalid.",
+      "retryable": false,
+      "status": 422
+    },
+    "method_not_allowed": {
+      "allows_commit_state": false,
+      "message": "This request method is not allowed.",
+      "retryable": false,
+      "status": 405
+    },
+    "model_failure": {
+      "allows_commit_state": false,
+      "message": "The answer could not be prepared.",
+      "retryable": false,
+      "status": 502
+    },
+    "not_found": {
+      "allows_commit_state": false,
+      "message": "The requested resource is unavailable.",
+      "retryable": false,
+      "status": 404
+    },
+    "payload_too_large": {
+      "allows_commit_state": false,
+      "message": "The request is too large.",
+      "retryable": false,
+      "status": 413
+    },
+    "persistence_failed": {
+      "allows_commit_state": true,
+      "message": "The save could not be confirmed. Check the request status.",
+      "retryable": false,
+      "status": 503
+    },
+    "policy_changed": {
+      "allows_commit_state": true,
+      "message": "Your permissions changed. Reload before continuing.",
+      "retryable": false,
+      "status": 409
+    },
+    "rate_limited": {
+      "allows_commit_state": false,
+      "message": "Too many requests. Please wait before continuing.",
+      "retryable": true,
+      "status": 429
+    },
+    "request_in_progress": {
+      "allows_commit_state": false,
+      "message": "This request is still in progress.",
+      "retryable": true,
+      "status": 409
+    },
+    "response_invalid": {
+      "allows_commit_state": false,
+      "message": "The answer could not be validated.",
+      "retryable": false,
+      "status": 502
+    },
+    "session_expired": {
+      "allows_commit_state": false,
+      "message": "Your session has expired. Please sign in.",
+      "retryable": false,
+      "status": 401
+    },
+    "source_unavailable": {
+      "allows_commit_state": false,
+      "message": "The data source is unavailable.",
+      "retryable": false,
+      "status": 503
+    },
+    "temporary_unavailable": {
+      "allows_commit_state": false,
+      "message": "This temporary chat is unavailable. Start a new chat.",
+      "retryable": false,
+      "status": 410
+    },
+    "version_conflict": {
+      "allows_commit_state": false,
+      "message": "The resource changed. Reload before continuing.",
+      "retryable": false,
+      "status": 409
+    }
+  }
+}

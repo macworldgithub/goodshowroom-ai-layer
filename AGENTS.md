@@ -28,7 +28,7 @@
 
 ## Test Code Authoring
 
-- Whenever test code must be created or changed, delegate that work to a sub-agent using **GPT-6 Luna** (`gpt-6-luna`) with reasoning effort **max**. This applies to unit, integration, API, component, browser, and test-harness code.
+- Whenever test code must be created or changed, delegate that work to a sub-agent using **GPT-6 Luna** (`gpt-6-luna`) with reasoning effort **medium**. This applies to unit, integration, API, component, browser, and test-harness code.
 - Give the sub-agent the approved ticket, relevant requirements, affected files, expected behavior, and verification commands. Review its changes and actual check results before reporting completion.
 - If that model or reasoning setting is unavailable, report the limitation and ask the user before using a different configuration for test-code authoring.
 

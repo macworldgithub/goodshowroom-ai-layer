@@ -1,0 +1,143 @@
+{
+  "limits": {
+    "depth": 20,
+    "max_integer": 9007199254740991,
+    "nodes": 20000,
+    "request_bytes": 65536,
+    "response_bytes": 1048576
+  },
+  "errors": {
+    "access_denied": {
+      "allows_commit_state": false,
+      "message": "You do not have access to this information.",
+      "retryable": false,
+      "status": 403
+    },
+    "approval_required": {
+      "allows_commit_state": false,
+      "message": "Administrator approval is required.",
+      "retryable": false,
+      "status": 403
+    },
+    "authentication_required": {
+      "allows_commit_state": false,
+      "message": "Please sign in.",
+      "retryable": false,
+      "status": 401
+    },
+    "authorization_unavailable": {
+      "allows_commit_state": false,
+      "message": "Access could not be verified.",
+      "retryable": false,
+      "status": 503
+    },
+    "cleanup_pending": {
+      "allows_commit_state": true,
+      "message": "Cleanup is not complete.",
+      "retryable": true,
+      "status": 503
+    },
+    "deadline_exceeded": {
+      "allows_commit_state": true,
+      "message": "The request timed out. Check its status before retrying.",
+      "retryable": false,
+      "status": 504
+    },
+    "idempotency_conflict": {
+      "allows_commit_state": false,
+      "message": "This request ID was used for a different request.",
+      "retryable": false,
+      "status": 409
+    },
+    "internal_error": {
+      "allows_commit_state": true,
+      "message": "The request could not be completed.",
+      "retryable": false,
+      "status": 500
+    },
+    "invalid_request": {
+      "allows_commit_state": false,
+      "message": "The request is invalid.",
+      "retryable": false,
+      "status": 422
+    },
+    "method_not_allowed": {
+      "allows_commit_state": false,
+      "message": "This request method is not allowed.",
+      "retryable": false,
+      "status": 405
+    },
+    "model_failure": {
+      "allows_commit_state": false,
+      "message": "The answer could not be prepared.",
+      "retryable": false,
+      "status": 502
+    },
+    "not_found": {
+      "allows_commit_state": false,
+      "message": "The requested resource is unavailable.",
+      "retryable": false,
+      "status": 404
+    },
+    "payload_too_large": {
+      "allows_commit_state": false,
+      "message": "The request is too large.",
+      "retryable": false,
+      "status": 413
+    },
+    "persistence_failed": {
+      "allows_commit_state": true,
+      "message": "The save could not be confirmed. Check the request status.",
+      "retryable": false,
+      "status": 503
+    },
+    "policy_changed": {
+      "allows_commit_state": true,
+      "message": "Your permissions changed. Reload before continuing.",
+      "retryable": false,
+      "status": 409
+    },
+    "rate_limited": {
+      "allows_commit_state": false,
+      "message": "Too many requests. Please wait before continuing.",
+      "retryable": true,
+      "status": 429
+    },
+    "request_in_progress": {
+      "allows_commit_state": false,
+      "message": "This request is still in progress.",
+      "retryable": true,
+      "status": 409
+    },
+    "response_invalid": {
+      "allows_commit_state": false,
+      "message": "The answer could not be validated.",
+      "retryable": false,
+      "status": 502
+    },
+    "session_expired": {
+      "allows_commit_state": false,
+      "message": "Your session has expired. Please sign in.",
+      "retryable": false,
+      "status": 401
+    },
+    "source_unavailable": {
+      "allows_commit_state": false,
+      "message": "The data source is unavailable.",
+      "retryable": false,
+      "status": 503
+    },
+    "temporary_unavailable": {
+      "allows_commit_state": false,
+      "message": "This temporary chat is unavailable. Start a new chat.",
+      "retryable": false,
+      "status": 410
+    },
+    "version_conflict": {
+      "allows_commit_state": false,
+      "message": "The resource changed. Reload before continuing.",
+      "retryable": false,
+      "status": 409
+    }
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "cases": [
+    {
+      "name": "create_chat_request",
+      "model": "CreateChatRequest",
+      "valid": true,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\"}"
+    },
+    {
+      "name": "turn_request",
+      "model": "TurnRequest",
+      "valid": true,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"message\":\"Show total leads.\",\"expected_version\":0}"
+    },
+    {
+      "name": "saved_zero_result",
+      "model": "ChatResultEnvelope",
+      "valid": true,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"schema_version\":1,\"data\":{\"session_id\":\"4e748442-544d-4fef-9679-07b0ad62999c\",\"mode\":\"saved\",\"version\":1,\"persistence\":\"committed\",\"response\":{\"status\":\"complete\",\"answer\":\"Total leads: 0.\",\"claims\":[{\"text\":\"Total leads: 0.\",\"fact_ids\":[\"fact_total_leads\"]}],\"facts\":[{\"fact_id\":\"fact_total_leads\",\"metric_id\":\"total_leads\",\"metric_version\":1,\"value\":0,\"unit\":\"leads\",\"evidence_ids\":[\"evidence_total_leads\"]}],\"datasets\":[{\"dataset_id\":\"dataset_total_leads\",\"columns\":[{\"key\":\"label\",\"label\":\"Metric\",\"type\":\"string\",\"unit\":null},{\"key\":\"value\",\"label\":\"Count\",\"type\":\"number\",\"unit\":\"leads\"}],\"rows\":[{\"label\":\"Total leads\",\"value\":0,\"fact_id\":\"fact_total_leads\"}],\"next_cursor\":null}],\"visuals\":[{\"kind\":\"card\",\"dataset_id\":\"dataset_total_leads\",\"field_bindings\":{\"label\":\"label\",\"value\":\"value\"}},{\"kind\":\"table\",\"dataset_id\":\"dataset_total_leads\",\"field_bindings\":{\"label\":\"label\",\"value\":\"value\"}}],\"sources\":[{\"source_id\":\"source_leads\",\"label\":\"Lead records\"}],\"evidence\":[{\"evidence_id\":\"evidence_total_leads\",\"source_id\":\"source_leads\",\"metric_id\":\"total_leads\",\"metric_version\":1,\"provenance\":\"reviewed_metric_definition\"}],\"coverage\":{\"status\":\"complete\",\"counts_disclosed\":false},\"warnings\":[],\"period\":{\"start_local\":\"2026-10-15T00:00:00+11:00\",\"end_local\":\"2026-10-22T00:00:00+11:00\",\"start_utc\":\"2026-10-14T13:00:00Z\",\"end_utc\":\"2026-10-21T13:00:00Z\",\"timezone\":\"Australia/Melbourne\",\"label\":\"Previous seven completed dealership calendar days\"},\"scope\":{\"site\":\"site_a\",\"record_scope\":\"full_permitted_site\"},\"retrieved_at\":\"2026-10-22T09:00:00Z\",\"policy_version\":7}}}"
+    },
+    {
+      "name": "temporary_partial_result",
+      "model": "ChatResultEnvelope",
+      "valid": true,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"schema_version\":1,\"data\":{\"session_id\":\"4e748442-544d-4fef-9679-07b0ad62999c\",\"mode\":\"temporary\",\"version\":1,\"persistence\":\"not_saved\",\"response\":{\"status\":\"partial\",\"answer\":\"The available data is incomplete.\",\"claims\":[],\"facts\":[],\"datasets\":[],\"visuals\":[],\"sources\":[],\"evidence\":[],\"coverage\":{\"status\":\"partial\",\"counts_disclosed\":false},\"warnings\":[\"incomplete_data\"],\"period\":null,\"scope\":null,\"retrieved_at\":null,\"policy_version\":1}}}"
+    },
+    {
+      "name": "temporary_unavailable_notice",
+      "model": "ChatResultEnvelope",
+      "valid": true,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"schema_version\":1,\"data\":{\"session_id\":\"4e748442-544d-4fef-9679-07b0ad62999c\",\"mode\":\"temporary\",\"version\":1,\"persistence\":\"not_saved\",\"response\":{\"status\":\"unavailable\",\"answer\":\"The required data is unavailable.\",\"claims\":[],\"facts\":[],\"datasets\":[],\"visuals\":[],\"sources\":[],\"evidence\":[],\"coverage\":{\"status\":\"unknown\",\"counts_disclosed\":false},\"warnings\":[\"missing_data\"],\"period\":null,\"scope\":null,\"retrieved_at\":null,\"policy_version\":1}}}"
+    },
+    {
+      "name": "source_unavailable_error",
+      "model": "ErrorEnvelope",
+      "valid": true,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"schema_version\":1,\"error\":{\"code\":\"source_unavailable\",\"message\":\"The data source is unavailable.\",\"retryable\":false}}"
+    },
+    {
+      "name": "unknown_commit_error",
+      "model": "ErrorEnvelope",
+      "valid": true,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"schema_version\":1,\"error\":{\"code\":\"persistence_failed\",\"message\":\"The save could not be confirmed. Check the request status.\",\"retryable\":false,\"commit_state\":\"unknown\"}}"
+    },
+    {
+      "name": "unknown_request_field",
+      "model": "TurnRequest",
+      "valid": false,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"message\":\"x\",\"expected_version\":0,\"owner_id\":\"synthetic\"}"
+    },
+    {
+      "name": "duplicate_request_id_key",
+      "model": "CreateChatRequest",
+      "valid": false,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\"}"
+    },
+    {
+      "name": "excessive_nesting",
+      "model": "TurnRequest",
+      "valid": false,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"message\":\"x\",\"expected_version\":0,\"extra\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":{\"x\":0}}}}}}}}}}}}}}}}}}}}}}"
+    },
+    {
+      "name": "nonfinite_number",
+      "model": "TurnRequest",
+      "valid": false,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"message\":\"x\",\"expected_version\":NaN}"
+    },
+    {
+      "name": "float_number",
+      "model": "TurnRequest",
+      "valid": false,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"message\":\"x\",\"expected_version\":0.0}"
+    },
+    {
+      "name": "exponent_number",
+      "model": "TurnRequest",
+      "valid": false,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"message\":\"x\",\"expected_version\":0e0}"
+    },
+    {
+      "name": "mode_persistence_mismatch",
+      "model": "ChatResultEnvelope",
+      "valid": false,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"schema_version\":1,\"data\":{\"session_id\":\"4e748442-544d-4fef-9679-07b0ad62999c\",\"mode\":\"saved\",\"version\":1,\"persistence\":\"not_saved\",\"response\":{\"status\":\"complete\",\"answer\":\"Total leads: 3.\",\"claims\":[{\"text\":\"Total leads: 3.\",\"fact_ids\":[\"fact_total_leads\"]}],\"facts\":[{\"fact_id\":\"fact_total_leads\",\"metric_id\":\"total_leads\",\"metric_version\":1,\"value\":3,\"unit\":\"leads\",\"evidence_ids\":[\"evidence_total_leads\"]}],\"datasets\":[{\"dataset_id\":\"dataset_total_leads\",\"columns\":[{\"key\":\"label\",\"label\":\"Metric\",\"type\":\"string\",\"unit\":null},{\"key\":\"value\",\"label\":\"Count\",\"type\":\"number\",\"unit\":\"leads\"}],\"rows\":[{\"label\":\"Total leads\",\"value\":3,\"fact_id\":\"fact_total_leads\"}],\"next_cursor\":null}],\"visuals\":[{\"kind\":\"card\",\"dataset_id\":\"dataset_total_leads\",\"field_bindings\":{\"label\":\"label\",\"value\":\"value\"}},{\"kind\":\"table\",\"dataset_id\":\"dataset_total_leads\",\"field_bindings\":{\"label\":\"label\",\"value\":\"value\"}}],\"sources\":[{\"source_id\":\"source_leads\",\"label\":\"Lead records\"}],\"evidence\":[{\"evidence_id\":\"evidence_total_leads\",\"source_id\":\"source_leads\",\"metric_id\":\"total_leads\",\"metric_version\":1,\"provenance\":\"reviewed_metric_definition\"}],\"coverage\":{\"status\":\"complete\",\"counts_disclosed\":false},\"warnings\":[],\"period\":{\"start_local\":\"2026-10-15T00:00:00+11:00\",\"end_local\":\"2026-10-22T00:00:00+11:00\",\"start_utc\":\"2026-10-14T13:00:00Z\",\"end_utc\":\"2026-10-21T13:00:00Z\",\"timezone\":\"Australia/Melbourne\",\"label\":\"Previous seven completed dealership calendar days\"},\"scope\":{\"site\":\"site_a\",\"record_scope\":\"full_permitted_site\"},\"retrieved_at\":\"2026-10-22T09:00:00Z\",\"policy_version\":7}}}"
+    },
+    {
+      "name": "evidence_graph_mismatch",
+      "model": "ChatResultEnvelope",
+      "valid": false,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"schema_version\":1,\"data\":{\"session_id\":\"4e748442-544d-4fef-9679-07b0ad62999c\",\"mode\":\"saved\",\"version\":1,\"persistence\":\"committed\",\"response\":{\"status\":\"complete\",\"answer\":\"Total leads: 3.\",\"claims\":[{\"text\":\"Total leads: 3.\",\"fact_ids\":[\"fact_total_leads\"]}],\"facts\":[{\"fact_id\":\"fact_total_leads\",\"metric_id\":\"total_leads\",\"metric_version\":1,\"value\":4,\"unit\":\"leads\",\"evidence_ids\":[\"evidence_total_leads\"]}],\"datasets\":[{\"dataset_id\":\"dataset_total_leads\",\"columns\":[{\"key\":\"label\",\"label\":\"Metric\",\"type\":\"string\",\"unit\":null},{\"key\":\"value\",\"label\":\"Count\",\"type\":\"number\",\"unit\":\"leads\"}],\"rows\":[{\"label\":\"Total leads\",\"value\":3,\"fact_id\":\"fact_total_leads\"}],\"next_cursor\":null}],\"visuals\":[{\"kind\":\"card\",\"dataset_id\":\"dataset_total_leads\",\"field_bindings\":{\"label\":\"label\",\"value\":\"value\"}},{\"kind\":\"table\",\"dataset_id\":\"dataset_total_leads\",\"field_bindings\":{\"label\":\"label\",\"value\":\"value\"}}],\"sources\":[{\"source_id\":\"source_leads\",\"label\":\"Lead records\"}],\"evidence\":[{\"evidence_id\":\"evidence_total_leads\",\"source_id\":\"source_leads\",\"metric_id\":\"total_leads\",\"metric_version\":1,\"provenance\":\"reviewed_metric_definition\"}],\"coverage\":{\"status\":\"complete\",\"counts_disclosed\":false},\"warnings\":[],\"period\":{\"start_local\":\"2026-10-15T00:00:00+11:00\",\"end_local\":\"2026-10-22T00:00:00+11:00\",\"start_utc\":\"2026-10-14T13:00:00Z\",\"end_utc\":\"2026-10-21T13:00:00Z\",\"timezone\":\"Australia/Melbourne\",\"label\":\"Previous seven completed dealership calendar days\"},\"scope\":{\"site\":\"site_a\",\"record_scope\":\"full_permitted_site\"},\"retrieved_at\":\"2026-10-22T09:00:00Z\",\"policy_version\":7}}}"
+    },
+    {
+      "name": "non_utc_timestamp",
+      "model": "ChatResultEnvelope",
+      "valid": false,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"schema_version\":1,\"data\":{\"session_id\":\"4e748442-544d-4fef-9679-07b0ad62999c\",\"mode\":\"saved\",\"version\":1,\"persistence\":\"committed\",\"response\":{\"status\":\"complete\",\"answer\":\"Total leads: 3.\",\"claims\":[{\"text\":\"Total leads: 3.\",\"fact_ids\":[\"fact_total_leads\"]}],\"facts\":[{\"fact_id\":\"fact_total_leads\",\"metric_id\":\"total_leads\",\"metric_version\":1,\"value\":3,\"unit\":\"leads\",\"evidence_ids\":[\"evidence_total_leads\"]}],\"datasets\":[{\"dataset_id\":\"dataset_total_leads\",\"columns\":[{\"key\":\"label\",\"label\":\"Metric\",\"type\":\"string\",\"unit\":null},{\"key\":\"value\",\"label\":\"Count\",\"type\":\"number\",\"unit\":\"leads\"}],\"rows\":[{\"label\":\"Total leads\",\"value\":3,\"fact_id\":\"fact_total_leads\"}],\"next_cursor\":null}],\"visuals\":[{\"kind\":\"card\",\"dataset_id\":\"dataset_total_leads\",\"field_bindings\":{\"label\":\"label\",\"value\":\"value\"}},{\"kind\":\"table\",\"dataset_id\":\"dataset_total_leads\",\"field_bindings\":{\"label\":\"label\",\"value\":\"value\"}}],\"sources\":[{\"source_id\":\"source_leads\",\"label\":\"Lead records\"}],\"evidence\":[{\"evidence_id\":\"evidence_total_leads\",\"source_id\":\"source_leads\",\"metric_id\":\"total_leads\",\"metric_version\":1,\"provenance\":\"reviewed_metric_definition\"}],\"coverage\":{\"status\":\"complete\",\"counts_disclosed\":false},\"warnings\":[],\"period\":{\"start_local\":\"2026-10-15T00:00:00+11:00\",\"end_local\":\"2026-10-22T00:00:00+11:00\",\"start_utc\":\"2026-10-14T13:00:00Z\",\"end_utc\":\"2026-10-21T13:00:00Z\",\"timezone\":\"Australia/Melbourne\",\"label\":\"Previous seven completed dealership calendar days\"},\"scope\":{\"site\":\"site_a\",\"record_scope\":\"full_permitted_site\"},\"retrieved_at\":\"2026-10-22T12:00:00+10:00\",\"policy_version\":7}}}"
+    },
+    {
+      "name": "schema_version_boolean_true",
+      "model": "ErrorEnvelope",
+      "valid": false,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"schema_version\":true,\"error\":{\"code\":\"source_unavailable\",\"message\":\"The data source is unavailable.\",\"retryable\":false}}"
+    },
+    {
+      "name": "counts_disclosed_integer_zero",
+      "model": "ChatResultEnvelope",
+      "valid": false,
+      "json": "{\"request_id\":\"7ed11ca9-26b2-44d3-96f4-351258801ed1\",\"schema_version\":1,\"data\":{\"session_id\":\"4e748442-544d-4fef-9679-07b0ad62999c\",\"mode\":\"temporary\",\"version\":1,\"persistence\":\"not_saved\",\"response\":{\"status\":\"unavailable\",\"answer\":\"The required data is unavailable.\",\"claims\":[],\"facts\":[],\"datasets\":[],\"visuals\":[],\"sources\":[],\"evidence\":[],\"coverage\":{\"status\":\"unknown\",\"counts_disclosed\":0},\"warnings\":[\"missing_data\"],\"period\":null,\"scope\":null,\"retrieved_at\":null,\"policy_version\":1}}}"
+    }
+  ]
+}

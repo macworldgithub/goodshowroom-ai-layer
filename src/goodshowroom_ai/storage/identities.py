@@ -122,7 +122,13 @@ class UserRecord(Record):
         return self
 
 
+RoleCapability = Literal[
+    "chat", "review_saved_chats", "manage_access", "manage_settings"
+]
+
+
 class RoleRecord(Record):
     name_key: str = Field(min_length=1, max_length=100, pattern=r"^[a-z0-9_-]+$")
     active: bool = False
     grants: tuple[Grant, ...] = Field(default=(), max_length=100)
+    capabilities: frozenset[RoleCapability] = Field(default_factory=frozenset)

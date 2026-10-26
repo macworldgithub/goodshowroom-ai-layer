@@ -52,7 +52,7 @@ All IDs below refer to app UUIDs unless stated otherwise. `?` means optional/nul
 | `access_requests` | `kind:request/preapproval`, `email_key`, `user_id?`, `status:pending/approved/rejected/consumed/revoked`, `active:bool`, reviewed `role_id?`/`scope_limit?`, reviewer/time, `expires_at?`. Combining requests/preapprovals avoids placeholder user accounts. |
 | `identity_mappings` | `user_id`, one `source_ref` identifying operational staff, verified assignment/site mappings, `mapping_version:int`, `active`, `verified_by`, `verified_at`. Ambiguous/name-only matches do not grant ownership. |
 | `login_sessions` | `user_id`, `generation:int`, `expires_at`, `lease_valid_until`, `revoked_at?`, `version:int`. Stores validity metadata, never raw NextAuth cookies, Google tokens, or internal signed tokens. |
-| `chat_sessions` | `owner_user_id`, safe generic title, `status:active/deleting`, `version:int`, `last_activity_at`, bounded `context_state`/authorized `summary?`, minimal `last_attempt?`, `expires_at?`. No ever-growing transcript array. |
+| `chat_sessions` | `owner_user_id`, owner-scoped `creation_request_id` for safe create replay, safe generic title, `status:active/deleting`, `version:int`, `last_activity_at`, bounded `context_state`/authorized `summary?`, minimal `last_attempt?`, `expires_at?`. No ever-growing transcript array. |
 | `chat_turns` | `session_id`, `owner_user_id`, `request_id`, `request_hash`, `sequence:int`, bounded `user_message`, validated `response`, permitted `evidence[]`, `question_state_after`, `policy_version`, `metric_versions`, `committed_at`, `expires_at?`. Every record is a complete committed turn. |
 | `audit_events` | `actor_id`/`target_id` opaque IDs, fixed action/outcome/error category, request ID, `created_at`, `expires_at?`. Includes admin access/review and security events; never transcripts, secrets, raw exception text, or tool records. |
 | `app_settings` | Named `_id` documents: access-control state (`policy_version:int`, `commit_fence:int`, `bootstrap_complete`); versioned site aliases/timezones and reviewed retention/disclosure settings. No secrets, prompts-as-policy, or model-generated metric definitions. |
@@ -97,7 +97,7 @@ These indexes are for the AI database only and will be created during authorized
 | `access_requests` | Partial unique `(kind, email_key)` where `active=true`; `(status, created_at)`. Consuming/rejecting closes the active entry. |
 | `identity_mappings` | Unique source-reference tuple; `(user_id, active)`. One operational identity cannot silently map to multiple app users. |
 | `login_sessions` | `(user_id, revoked_at)`; separate TTL on `expires_at`. |
-| `chat_sessions` | `(owner_user_id, last_activity_at desc)`; `(last_activity_at desc)` for authorized admin review. |
+| `chat_sessions` | Unique `(owner_user_id, creation_request_id)` for idempotent create; `(owner_user_id, status, last_activity_at desc, _id desc)` for stable owner listing; `(last_activity_at desc, _id desc)` for authorized admin review. |
 | `chat_turns` | Unique `(session_id, request_id)` and `(session_id, sequence)`; sequence index supports ordered pagination. Owner must match the parent. |
 | `audit_events` | `(actor_id, created_at desc)`, `(target_id, created_at desc)`; optional TTL after retention approval. |
 | `app_settings` | Built-in unique `_id` for named settings/control documents. |

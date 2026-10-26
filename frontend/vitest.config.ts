@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [react()],
   envDir: false,
   test: {
-    include: ["src/**/*.test.tsx"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
     clearMocks: true,
