@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import sharedFixtures from "../../../contracts/fixtures.json";
+import * as validators from "./generated/validators.cjs";
 import {
   ApiContractError,
   parseApiContract,
@@ -20,6 +21,23 @@ const contractNames = [
   "ChatResultEnvelope",
   "ErrorEnvelope",
 ] as const;
+
+describe("own-access response validation", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  const pending = { schema_version: 1, request_id: id, data: { access_status: "pending", role: null, capabilities: [], scope_choices: [] } };
+  it("accepts only safe pending status and the correct HTTP status", () => {
+    expect(parseApiContract("OwnAccessEnvelope", JSON.stringify(pending), 200).data.access_status).toBe("pending");
+    expect(() => parseApiContract("OwnAccessEnvelope", JSON.stringify({ ...pending, data: { ...pending.data, role: "admin" } }), 200)).toThrow(ApiContractError);
+    expect(validators.OwnAccessEnvelope({ ...pending, data: { ...pending.data, role: "admin" } })).toBe(false);
+    expect(() => parseApiContract("OwnAccessEnvelope", JSON.stringify(pending), 201)).toThrow(ApiContractError);
+  });
+  it("accepts created or existing pending requests only", () => {
+    const result = JSON.stringify({ schema_version: 1, request_id: id, data: { id, status: "pending" } });
+    expect(parseApiContract("OwnRequestEnvelope", result, 201).data.status).toBe("pending");
+    expect(parseApiContract("OwnRequestEnvelope", result, 200).data.status).toBe("pending");
+    expect(() => parseApiContract("OwnRequestEnvelope", result, 403)).toThrow(ApiContractError);
+  });
+});
 
 function isContractName(value: string): value is ContractName {
   return contractNames.some((name) => name === value);

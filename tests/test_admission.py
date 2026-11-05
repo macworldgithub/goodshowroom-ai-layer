@@ -9,6 +9,7 @@ import pytest
 from goodshowroom_ai.admission import AdmissionController
 from goodshowroom_ai.api_contracts import ErrorCode
 from goodshowroom_ai.api_http import ApiProblem
+from goodshowroom_ai.execution import ExecutionLimits
 
 
 @dataclass
@@ -26,6 +27,46 @@ class FakeClock:
 def admission():
     clock = FakeClock()
     return AdmissionController(clock=clock), clock
+
+
+@pytest.mark.asyncio
+async def test_access_request_rate_is_per_user_and_expires(admission):
+    controller, clock = admission
+    user = uuid4()
+    results = await asyncio.gather(
+        *(controller.admit_access_request(user) for _ in range(11)),
+        return_exceptions=True,
+    )
+    assert sum(result is None for result in results) == 10
+    denied = [result for result in results if isinstance(result, ApiProblem)]
+    assert len(denied) == 1 and denied[0].code is ErrorCode.RATE_LIMITED
+    await controller.admit_access_request(uuid4())
+    clock.advance(60)
+    await controller.admit_access_request(user)
+
+
+@pytest.mark.asyncio
+async def test_access_request_rate_rejects_untyped_user_id(admission):
+    controller, _ = admission
+    with pytest.raises(ApiProblem) as caught:
+        await controller.admit_access_request(str(uuid4()))
+    assert caught.value.code is ErrorCode.INVALID_REQUEST
+
+
+@pytest.mark.asyncio
+async def test_access_limit_is_independent_of_turn_limit():
+    limits = ExecutionLimits(
+        access_requests_per_user_per_minute=1, turns_per_user_per_minute=2
+    )
+    controller = AdmissionController(limits=limits, clock=FakeClock())
+    user = uuid4()
+    await controller.admit_access_request(user)
+    with pytest.raises(ApiProblem) as caught:
+        await controller.admit_access_request(user)
+    assert caught.value.code is ErrorCode.RATE_LIMITED
+    for _ in range(2):
+        async with controller.admit_turn(user, uuid4()):
+            pass
 
 
 @pytest.mark.asyncio

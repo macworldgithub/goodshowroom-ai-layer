@@ -1,16 +1,9 @@
-import { existsSync } from "node:fs";
-import { loadEnvFile } from "node:process";
 import { fileURLToPath } from "node:url";
+import { loadRepositoryEnv } from "./scripts/load-repository-env.mjs";
 
-// Load only the existing repository file. Never export its values through `env`.
-const repositoryEnv = fileURLToPath(new URL("../.env", import.meta.url));
-if (existsSync(repositoryEnv)) {
-  try {
-    loadEnvFile(repositoryEnv);
-  } catch {
-    throw new Error("Cannot load server environment configuration.");
-  }
-}
+// Existing process values win. Local values override the shared defaults.
+// Never export server values through Next.js's client-visible `env` option.
+loadRepositoryEnv(fileURLToPath(new URL("../", import.meta.url)));
 
 /** @type {import("next").NextConfig} */
 const nextConfig = {

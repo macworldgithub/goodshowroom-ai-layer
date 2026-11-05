@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
@@ -26,6 +27,7 @@ from goodshowroom_ai.storage.chat_sessions import (
 )
 from goodshowroom_ai.storage.identities import RoleRecord, UserRecord
 from goodshowroom_ai.storage.logins import LoginRecord
+from goodshowroom_ai.identity_security import IdentitySecurityState
 from goodshowroom_ai.storage.settings import AppSetting, IdentityMapping
 
 from goodshowroom_ai.storage.models import (
@@ -268,6 +270,25 @@ class AppDatabase:
                 "App database indexes are unavailable."
             ) from None
 
+    async def load_identity_security(self) -> IdentitySecurityState:
+        """Read committed incident state afresh, outside a caller's old snapshot."""
+        database = self.__require_database().with_options(
+            read_concern=ReadConcern("majority")
+        )
+        try:
+            async with (
+                asyncio.timeout(5),
+                self.__client.start_session().bind() as session,
+            ):
+                document = await database["app_settings"].find_one(
+                    {"_id": _ACCESS_CONTROL_SETTINGS_ID}, session=session
+                )
+                return IdentitySecurityState.from_document(document)
+        except Exception:
+            raise AppDatabaseUnavailable(
+                "Identity security state is unavailable."
+            ) from None
+
     def transaction(
         self, context: InternalAuthorizationContext
     ) -> AsyncContextManager["_AppWriteTransaction"]:
@@ -291,6 +312,14 @@ class AppDatabase:
             or StorageCapability.WRITE_CHATS not in context.capabilities
         ):
             raise AuthorizationDenied("Saved-turn write is not authorized.")
+        return self.__write_transaction(context, saved_turn=True)
+
+    def identity_incident_transaction(self, context: InternalAuthorizationContext):
+        """Require operator authority and a bounded majority-committed write."""
+        if not isinstance(context, InternalAuthorizationContext) or not context.permits(
+            StorageCapability.REVOKE_IDENTITY_KEYS
+        ):
+            raise AuthorizationDenied("Identity incident write is not authorized.")
         return self.__write_transaction(context, saved_turn=True)
 
     def snapshot_transaction(
@@ -431,6 +460,8 @@ class AppDatabase:
             raise
         except AppDatabaseUnavailable:
             raise
+        except PermissionError:
+            raise AuthorizationDenied("App write is not authorized.") from None
         except Exception as error:
             if _has_error_label(error, "UnknownTransactionCommitResult"):
                 raise AppCommitOutcomeUnknown(
@@ -482,6 +513,222 @@ class _AppWriteTransaction:
     async def get_role(self, role_id: UUID) -> RoleRecord | None:
         self.__require(StorageCapability.READ_IDENTITIES)
         return await self.__read_identity("roles", role_id, RoleRecord)
+
+    async def access_management_users(self) -> tuple[UserRecord, ...]:
+        """Bound the population examined for assigned roles and administrator safety."""
+        self.__require(StorageCapability.READ_IDENTITIES)
+        try:
+            cursor = (
+                self.__database["users"]
+                .find({}, session=self.__session)
+                .sort("_id", 1)
+                .limit(1001)
+                .max_time_ms(5000)
+            )
+            rows = await cursor.to_list(length=1001)
+            if len(rows) > 1000:
+                raise ValueError("Access population exceeds review limit")
+            total_bytes = 0
+            users = []
+            for row in rows:
+                total_bytes += validate_bson_document(row)
+                if total_bytes > MAX_APP_DOCUMENT_BYTES:
+                    raise ValueError("Access population exceeds size limit")
+                user = await self.get_user(UUID(row["_id"]))
+                if user is None:
+                    raise AppWriteConflict("Access population changed.")
+                users.append(user)
+            return tuple(users)
+        except AppWriteConflict:
+            self.__poisoned = True
+            raise
+        except Exception:
+            self.__poisoned = True
+            raise AppDatabaseUnavailable("Access population is unavailable.") from None
+
+    async def update_user_access(
+        self, current: UserRecord, updated: UserRecord
+    ) -> None:
+        """Write only access fields for an unchanged identity under the fence."""
+        self.__require(StorageCapability.WRITE_IDENTITIES)
+        if not isinstance(current, UserRecord) or not isinstance(updated, UserRecord):
+            raise ValueError("User records are required")
+        if (
+            await self.get_user(current.id) != current
+            or updated.id != current.id
+            or updated.provider != current.provider
+            or updated.provider_account_id != current.provider_account_id
+            or updated.email_key != current.email_key
+            or updated.display_name != current.display_name
+            or updated.created_at != current.created_at
+        ):
+            raise AppWriteConflict("User changed.")
+        await self.__write_identity("users", updated, current.version)
+
+    async def find_user_by_identity(self, provider_id: str, email_key: str):
+        """Resolve both unique keys; never merge two different identities."""
+        self.__require(StorageCapability.READ_IDENTITIES)
+        if type(provider_id) is not str or not 1 <= len(provider_id) <= 255:
+            raise AuthorizationDenied("Identity is not allowed.")
+        email_key = UserRecord.email(email_key)
+        try:
+            users = self.__database["users"]
+            by_provider = await users.find_one(
+                {"provider": "google", "provider_account_id": provider_id},
+                session=self.__session,
+            )
+            by_email = await users.find_one(
+                {"email_key": email_key}, session=self.__session
+            )
+            if by_email is not None and (
+                by_provider is None or by_email["_id"] != by_provider["_id"]
+            ):
+                raise AuthorizationDenied("Identity is not allowed.")
+            if by_provider is None:
+                return None
+            user = await self.__read_identity(
+                "users", UUID(by_provider["_id"]), UserRecord
+            )
+            if user is None or user.email_key != email_key:
+                raise AuthorizationDenied("Identity is not allowed.")
+            return user
+        except AuthorizationDenied:
+            raise
+        except Exception:
+            self.__poisoned = True
+            raise AppDatabaseUnavailable("Identity is unavailable.") from None
+
+    async def find_active_access(self, kind: str, email_key: str):
+        self.__require(StorageCapability.READ_ACCESS_REQUESTS)
+        if kind not in {"request", "preapproval"}:
+            raise ValueError("Invalid access kind")
+        email_key = UserRecord.email(email_key)
+        try:
+            row = await self.__database["access_requests"].find_one(
+                {"kind": kind, "email_key": email_key, "active": True},
+                session=self.__session,
+            )
+            return (
+                None if row is None else await self.get_access_request(UUID(row["_id"]))
+            )
+        except Exception:
+            self.__poisoned = True
+            raise AppDatabaseUnavailable("Access request is unavailable.") from None
+
+    async def bootstrap_available(self) -> bool:
+        self.__require(StorageCapability.READ_POLICY)
+        try:
+            row = await self.__database["app_settings"].find_one(
+                {"_id": _ACCESS_CONTROL_SETTINGS_ID}, session=self.__session
+            )
+            if row is None or type(row.get("bootstrap_complete")) is not bool:
+                raise ValueError()
+            return not row["bootstrap_complete"]
+        except Exception:
+            self.__poisoned = True
+            raise AppDatabaseUnavailable("Bootstrap state is unavailable.") from None
+
+    async def finish_bootstrap(self):
+        self.__require(StorageCapability.WRITE_IDENTITIES)
+        self.__access_write_ready()
+        try:
+            result = await self.__database["app_settings"].update_one(
+                {"_id": _ACCESS_CONTROL_SETTINGS_ID, "bootstrap_complete": False},
+                {"$set": {"bootstrap_complete": True}},
+                session=self.__session,
+            )
+            if result.matched_count != 1:
+                raise AppWriteConflict("Bootstrap state changed.")
+            await self.__advance_policy_version()
+        except AppWriteConflict:
+            self.__poisoned = True
+            raise
+        except Exception:
+            self.__poisoned = True
+            raise AppDatabaseUnavailable("Bootstrap is unavailable.") from None
+
+    async def apply_access_change(self, user, request, *, role, scope, status, now):
+        """Apply a checked access decision under the caller's transaction fence."""
+        self.__require(StorageCapability.WRITE_IDENTITIES)
+        self.__require(StorageCapability.WRITE_ACCESS_REQUESTS)
+        self.__access_write_ready()
+        now = utc_datetime(now)
+        if not isinstance(user, UserRecord) or status not in {"approved", "rejected"}:
+            raise ValueError("Invalid access decision")
+        current = await self.get_user(user.id)
+        if current != user or user.approval_status != "pending":
+            raise AppWriteConflict("User changed.")
+        if status == "approved":
+            if (
+                not isinstance(role, RoleRecord)
+                or not role.active
+                or not scope
+                or any(not any(scope_within(g, a) for a in role.grants) for g in scope)
+                or await self.get_role(role.id) != role
+            ):
+                raise AuthorizationDenied("Access is not allowed.")
+        elif role is not None or scope:
+            raise ValueError("Rejected access cannot grant scope")
+        if request is not None and (
+            not isinstance(request, AccessRequestRecord)
+            or not request.available(now)
+            or request.email_key != user.email_key
+            or (request.kind == "request" and request.user_id != user.id)
+            or (request.kind == "preapproval" and status != "approved")
+        ):
+            raise AppWriteConflict("Access request changed.")
+        updated = UserRecord.model_validate(
+            {
+                **user.model_dump(),
+                "version": user.version + 1,
+                "updated_at": now,
+                "approval_status": status,
+                "role_id": role.id if role else None,
+                "scope_limit": scope,
+            }
+        )
+        await self.__write_identity("users", updated, user.version)
+        if request is not None:
+            await self.close_access_for_decision(
+                request, status=status, now=now, role=role, scope=scope
+            )
+        return updated
+
+    async def close_access_for_decision(self, request, *, status, now, role, scope):
+        self.__require(StorageCapability.WRITE_ACCESS_REQUESTS)
+        self.__access_write_ready()
+        if not isinstance(request, AccessRequestRecord) or not request.available(now):
+            raise AppWriteConflict("Access request changed.")
+        outcome = "consumed" if request.kind == "preapproval" else status
+        if outcome not in {"consumed", "approved", "rejected"}:
+            raise ValueError("Invalid access decision")
+        updated = AccessRequestRecord.model_validate(
+            {
+                **request.model_dump(),
+                "status": outcome,
+                "active": False,
+                "updated_at": now,
+                "reviewed_at": now,
+                "reviewed_by": self.__authorization.actor_id,
+                "role_id": role.id if role else request.role_id,
+                "scope_limit": scope if role else request.scope_limit,
+            }
+        )
+        try:
+            result = await self.__database["access_requests"].replace_one(
+                {"_id": str(request.id), "status": "pending", "active": True},
+                updated.document(),
+                session=self.__session,
+            )
+            if result.matched_count != 1:
+                raise AppWriteConflict("Access request changed.")
+            await self.__advance_policy_version()
+        except AppWriteConflict:
+            self.__poisoned = True
+            raise
+        except Exception:
+            self.__poisoned = True
+            raise AppDatabaseUnavailable("Access request write failed.") from None
 
     async def get_policy_version(self) -> int:
         self.__require(StorageCapability.READ_POLICY)
@@ -1600,7 +1847,66 @@ class _AppWriteTransaction:
         record = await self.__read_identity("login_sessions", identifier, LoginRecord)
         if record is not None and record.user_id != self.__authorization.actor_id:
             raise AuthorizationDenied("Login is not authorized.")
+        if record is not None and not (await self.get_identity_security()).allows_login(
+            record.auth_started_at
+        ):
+            raise AuthorizationDenied("Login is not authorized.")
         return record
+
+    async def get_identity_security(self) -> IdentitySecurityState:
+        capability = next(
+            (
+                c
+                for c in (
+                    StorageCapability.READ_LOGINS,
+                    StorageCapability.WRITE_LOGINS,
+                    StorageCapability.READ_POLICY,
+                )
+                if self.__authorization.permits(c)
+            ),
+            StorageCapability.READ_POLICY,
+        )
+        self.__require(capability)
+        try:
+            document = await self.__database["app_settings"].find_one(
+                {"_id": _ACCESS_CONTROL_SETTINGS_ID}, session=self.__session
+            )
+            return IdentitySecurityState.from_document(document)
+        except Exception:
+            self.__poisoned = True
+            raise AppDatabaseUnavailable(
+                "Identity security state is unavailable."
+            ) from None
+
+    async def revoke_identity_key(self, *, kid, fingerprint, now):
+        """Offline operator only; no assertion or administrator route grants this."""
+        self.__require(StorageCapability.REVOKE_IDENTITY_KEYS)
+        self.__access_write_ready()
+        try:
+            state = await self.get_identity_security()
+            cutoff = int(utc_datetime(now).timestamp())
+            state = IdentitySecurityState(
+                revoked_key_ids=tuple(dict.fromkeys((*state.revoked_key_ids, kid))),
+                revoked_public_keys=tuple(
+                    dict.fromkeys((*state.revoked_public_keys, fingerprint))
+                ),
+                auth_cutoff=max(cutoff, state.auth_cutoff or 0),
+            )
+            result = await self.__database["app_settings"].update_one(
+                {"_id": _ACCESS_CONTROL_SETTINGS_ID},
+                {"$set": {"identity_security": state.model_dump(mode="json")}},
+                session=self.__session,
+            )
+            if result.matched_count != 1:
+                raise AppWriteConflict("Access-control state is unavailable.")
+            await self.__advance_policy_version()
+            return state
+        except (AppWriteConflict, AppDatabaseUnavailable):
+            self.__poisoned = True
+            raise
+        except Exception:
+            self.__poisoned = True
+            raise AppDatabaseUnavailable("Identity security change failed.") from None
 
     async def exchange_login(self, record: LoginRecord, now: datetime) -> LoginRecord:
         self.__require(StorageCapability.WRITE_LOGINS)
@@ -1611,6 +1917,10 @@ class _AppWriteTransaction:
                 or record.user_id != self.__authorization.actor_id
             ):
                 raise ValueError("Invalid new login binding")
+            if not (await self.get_identity_security()).allows_login(
+                record.auth_started_at
+            ):
+                raise AuthorizationDenied("Login is not authorized.")
             if await self.__read_identity("users", record.user_id, UserRecord) is None:
                 raise ValueError("Login parent is unavailable")
             current = await self.__read_identity(
@@ -1657,25 +1967,42 @@ class _AppWriteTransaction:
         expected_version: int,
         now: datetime,
         verified_auth_expiry: datetime,
+        assertion_issued_at: datetime | None = None,
     ) -> LoginRecord:
         if (
             not isinstance(verified_auth_expiry, datetime)
             or verified_auth_expiry.tzinfo is None
         ):
             raise ValueError("Verified authentication expiry is required")
+        if assertion_issued_at is not None and (
+            not isinstance(assertion_issued_at, datetime)
+            or assertion_issued_at.tzinfo is None
+        ):
+            raise ValueError("Verified assertion issuance is required")
         return await self.__change_login(
-            identifier, generation, expected_version, now, verified_auth_expiry
+            identifier,
+            generation,
+            expected_version,
+            now,
+            verified_auth_expiry,
+            assertion_issued_at,
         )
 
     async def revoke_login(
         self, identifier: UUID, *, generation: int, expected_version: int, now: datetime
     ) -> LoginRecord:
         return await self.__change_login(
-            identifier, generation, expected_version, now, None
+            identifier, generation, expected_version, now, None, None
         )
 
     async def __change_login(
-        self, identifier, generation, expected_version, now, auth_expiry
+        self,
+        identifier,
+        generation,
+        expected_version,
+        now,
+        auth_expiry,
+        assertion_issued_at,
     ):
         self.__require(StorageCapability.WRITE_LOGINS)
         self.__access_write_ready()
@@ -1684,6 +2011,10 @@ class _AppWriteTransaction:
                 "login_sessions", identifier, LoginRecord
             )
             if current is None or current.user_id != self.__authorization.actor_id:
+                raise AuthorizationDenied("Login is not authorized.")
+            if not (await self.get_identity_security()).allows_login(
+                current.auth_started_at
+            ):
                 raise AuthorizationDenied("Login is not authorized.")
             if type(generation) is not int or generation != current.generation:
                 raise AppWriteConflict("Login generation changed.")
@@ -1705,7 +2036,14 @@ class _AppWriteTransaction:
                 values["revoked_at"] = now
             else:
                 values["lease_valid_until"] = min(
-                    now + timedelta(minutes=5), current.expires_at
+                    now + timedelta(minutes=5),
+                    current.expires_at,
+                    max(
+                        current.lease_valid_until,
+                        assertion_issued_at + timedelta(minutes=5),
+                    )
+                    if assertion_issued_at is not None
+                    else current.expires_at,
                 )
             updated = LoginRecord.model_validate(values)
             result = await self.__database["login_sessions"].replace_one(
@@ -2028,8 +2366,10 @@ class _AppWriteTransaction:
                 {"$inc": {"commit_fence": 1}},
                 session=self.__session,
             )
-        except Exception:
+        except Exception as error:
             self.__poisoned = True
+            if _has_error_label(error, "TransientTransactionError"):
+                raise AppWriteConflict("Access-control policy changed.") from None
             raise AppDatabaseUnavailable("App database write failed.") from None
         if result.matched_count != 1:
             self.__poisoned = True

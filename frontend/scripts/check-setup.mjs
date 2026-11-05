@@ -9,21 +9,26 @@ import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 process.chdir(fileURLToPath(new URL("../", import.meta.url)));
-const rootEnv = new URL("../../.env", import.meta.url);
-const original = await readFile(rootEnv).catch((error) => {
-  if (error.code !== "ENOENT") throw new Error("Cannot read setup configuration.");
-  return Buffer.alloc(0);
-});
+const rootEnvs = [".env", ".env.local"].map((name) => new URL(`../../${name}`, import.meta.url));
+async function readConfiguration(path) {
+  return readFile(path).catch((error) => {
+    if (error.code !== "ENOENT") throw new Error("Cannot read setup configuration.");
+    return Buffer.alloc(0);
+  });
+}
+const originals = await Promise.all(rootEnvs.map(readConfiguration));
 const before = { ...process.env };
 await import("../next.config.mjs");
-const parsed = parseEnv(original.toString());
+// Process values win. Local repository settings override shared defaults.
+const parsed = Object.assign({}, ...originals.map((value) => parseEnv(value.toString())));
 for (const [name, value] of Object.entries(parsed)) {
   assert.ok(process.env[name] === (before[name] ?? value), "Root environment loading failed");
 }
 const sentinel = randomUUID();
 process.env.GOODSHOWROOM_SETUP_SENTINEL = sentinel;
 process.env.NEXT_TELEMETRY_DISABLED = "1";
-const protectedValues = [sentinel, ...Object.entries(parsed)
+// Check even overridden private values from both files for accidental output.
+const protectedValues = [sentinel, ...originals.flatMap((content) => Object.entries(parseEnv(content.toString())))
   .filter(([name, value]) => /SECRET|TOKEN|PASSWORD|KEY|URI|CLIENT_ID/.test(name) && value.length >= 12)
   .map(([, value]) => value)];
 
@@ -76,6 +81,8 @@ try {
   server.kill();
   await new Promise((resolve) => server.once("exit", resolve));
 }
-const after = await readFile(rootEnv).catch(() => Buffer.alloc(0));
-assert.equal(createHash("sha256").update(after).digest("hex"), createHash("sha256").update(original).digest("hex"), "Environment file changed");
+for (const [index, path] of rootEnvs.entries()) {
+  const after = await readConfiguration(path);
+  assert.equal(createHash("sha256").update(after).digest("hex"), createHash("sha256").update(originals[index]).digest("hex"), "Environment file changed");
+}
 console.log("Setup checks passed: root environment, build, browser assets, HTTP startup, unavailable routes, unchanged environment.");

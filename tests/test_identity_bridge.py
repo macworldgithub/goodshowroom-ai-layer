@@ -445,6 +445,33 @@ async def test_compromised_key_has_no_rotation_grace(signing_key):
         await _verify(verifier, _mint(signing_key))
 
 
+@pytest.mark.asyncio
+async def test_two_key_overlap_and_restart_rejects_compromised_key(signing_key):
+    replacement = rsa.generate_private_key(public_exponent=65537, key_size=3072)
+    old = VerificationKey(
+        public_pem=_public_pem(signing_key),
+        activated_at=NOW - timedelta(days=1),
+        retired_at=NOW,
+    )
+    new = VerificationKey(
+        public_pem=_public_pem(replacement), activated_at=NOW - timedelta(seconds=1)
+    )
+    keys = {KID: old, "replacement": new}
+    verifier = AssertionVerifier(issuer=ISSUER, audience=AUDIENCE, keys=keys)
+    assert await _verify(verifier, _mint(signing_key))
+    assert await _verify(verifier, _mint(replacement, kid="replacement"))
+    keys[KID] = VerificationKey(
+        public_pem=old.public_pem,
+        activated_at=old.activated_at,
+        retired_at=old.retired_at,
+        revoked=True,
+    )
+    restarted = AssertionVerifier(issuer=ISSUER, audience=AUDIENCE, keys=dict(keys))
+    with pytest.raises(IdentityDenied):
+        await _verify(restarted, _mint(signing_key))
+    assert await _verify(restarted, _mint(replacement, kid="replacement"))
+
+
 def test_retired_key_window_is_exactly_210_seconds(signing_key):
     retired_at = NOW
     metadata = VerificationKey(

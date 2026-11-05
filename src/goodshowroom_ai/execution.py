@@ -20,6 +20,7 @@ class ExecutionLimits:
     output_tokens: int = 2_000
     turn_seconds: float = 60.0
     turns_per_user_per_minute: int = 10
+    access_requests_per_user_per_minute: int = 10
     max_attempts: int = 1
     json_depth: int = 20
     json_nodes: int = 20_000
@@ -37,6 +38,7 @@ class ExecutionLimits:
             "context_tokens",
             "output_tokens",
             "turns_per_user_per_minute",
+            "access_requests_per_user_per_minute",
             "max_attempts",
             "json_depth",
             "json_nodes",

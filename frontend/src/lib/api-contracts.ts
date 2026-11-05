@@ -6,7 +6,7 @@ import type { components } from "./generated/api-types";
 
 type Schemas = components["schemas"];
 type ContractMap = Pick<Schemas,
-  "CreateChatRequest" | "TurnRequest" | "ChatResultEnvelope" | "ErrorEnvelope"
+  "CreateChatRequest" | "TurnRequest" | "ChatResultEnvelope" | "ErrorEnvelope" | "OwnAccessEnvelope" | "OwnRequestEnvelope"
 >;
 export type ContractName = keyof ContractMap;
 export type { components } from "./generated/api-types";
@@ -146,6 +146,13 @@ export function parseApiContract<K extends ContractName>(name: K, raw: string, h
       if (data.persistence !== (data.mode === "saved" ? "committed" : "not_saved")
         || httpStatus !== undefined && httpStatus !== 200) invalid();
       responseValid(data.response);
+    } else if (name === "OwnAccessEnvelope") {
+      const data = (decoded as Schemas["OwnAccessEnvelope"]).data;
+      if (httpStatus !== undefined && httpStatus !== 200) invalid();
+      if (data.access_status !== "approved" && (data.role !== null || data.capabilities.length || data.scope_choices.length)) invalid();
+      if (data.access_status === "approved" && !data.role) invalid();
+    } else if (name === "OwnRequestEnvelope") {
+      if (httpStatus !== undefined && httpStatus !== 200 && httpStatus !== 201) invalid();
     } else if (name === "ErrorEnvelope") {
       const error = (decoded as Schemas["ErrorEnvelope"]).error;
       const expected = meta.errors[error.code];

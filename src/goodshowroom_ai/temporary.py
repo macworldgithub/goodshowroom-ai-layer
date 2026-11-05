@@ -389,6 +389,11 @@ class TemporaryMemoryStore:
                 self._drop(identifier)
 
     async def refresh_login(self, principal):
+        key = self._login_key(principal)
+        if self._closed or key in self._revoked:
+            raise TemporaryUnavailable()
+        if not any(entry.principal == principal for entry in self._entries.values()):
+            return
         decision = await self._authorize(principal, None)
         self.sweep()  # Fresh verification never revives context whose lease expired.
         login = decision.snapshot.login

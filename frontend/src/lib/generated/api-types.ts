@@ -307,6 +307,84 @@ export interface components {
             /** Value */
             value: number;
         };
+        /** OwnAccessData */
+        OwnAccessData: {
+            /**
+             * Access Status
+             * @enum {string}
+             */
+            access_status: "pending" | "approved" | "rejected" | "revoked";
+            /** Capabilities */
+            capabilities: ("chat" | "review_saved_chats" | "manage_access" | "manage_settings")[];
+            /** Role */
+            role: string | null;
+            /** Scope Choices */
+            scope_choices: components["schemas"]["OwnScopeChoice"][];
+        } & unknown;
+        /** OwnAccessEnvelope */
+        OwnAccessEnvelope: {
+            data: components["schemas"]["OwnAccessData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** OwnRequestData */
+        OwnRequestData: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Status
+             * @constant
+             */
+            status: "pending";
+        };
+        /** OwnRequestEnvelope */
+        OwnRequestEnvelope: {
+            data: components["schemas"]["OwnRequestData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** OwnScopeChoice */
+        OwnScopeChoice: {
+            /**
+             * Dataset
+             * @enum {string}
+             */
+            dataset: "byd-leads-new" | "byd-panel";
+            /** Fields */
+            fields: string[];
+            /** Metrics */
+            metrics: string[];
+            /**
+             * Record Mode
+             * @enum {string}
+             */
+            record_mode: "assigned" | "selected" | "all_permitted";
+            /** Sites */
+            sites: string[];
+            /** Tools */
+            tools: string[];
+        };
         /** Source */
         Source: {
             /**

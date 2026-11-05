@@ -109,6 +109,10 @@ class TraceStub:
         self.modes.append(mode)
         yield None
 
+    @contextmanager
+    def stage(self, _name):
+        yield None
+
     def run_config(self, mode):
         workflow = (
             "GoodShowroom.SavedChat"

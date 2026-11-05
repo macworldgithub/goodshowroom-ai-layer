@@ -1,5 +1,44 @@
 # Architecture Decisions
 
+## 2026-11-03 - Google cancellation accepted; site IDs remain open
+
+The user reported a real Google cancellation through the prepared local flow.
+Google showed Cancel, and cancellation returned the user to the generic local
+sign-in error. The user confirmed it worked properly. This is manual evidence;
+the agent did not inspect the Google session or provider data. The user also
+explicitly chose to keep canonical site IDs open. Real administrator grants
+remain deferred. This decision does not define IDs or authorize deployment.
+
+## 2026-11-03 - Initial administrator branch coverage approved
+
+The user approved all branch labels listed in the Ticket 031 database discovery
+and both holding yards for the selected initial administrator. DENZA Melbourne
+is included. The generic `BYD Dealership` label remains unidentified and blocked.
+This approves branch inclusion. It does not define missing canonical IDs, merge
+aliases, create grants or authorize deployment. Complete the reviewed mapping
+and remaining grant details before creating real administrator access.
+
+## TICKET-031 containment procedure approval
+
+The user explicitly approved these incident steps: stop affected services,
+reject the compromised signing key, invalidate all current logins, require a
+new sign-in, and keep services stopped if saving or checking the change fails.
+This approves the documented procedure, not real key changes or deployment.
+The single-process implementation has isolated evidence. Real Google
+cancellation remains unverified. Administrator site IDs remain open as directed.
+Ticket 031 stays In Review; no next ticket is authorized by this approval.
+
+## 2026-11-01 - Login test and initial administrator choices
+
+The user selected one backend process for the release's temporary chats and
+authorized a separate test-only signing key. The user selected their supplied
+Gmail account as the first administrator for the isolated Google login test.
+The user also selected access to all business data for the first administrator.
+This choice does not bypass server-side authorization or create a role or grant.
+The exact application role and supported dataset/field scopes still need to be
+mapped to the approved authorization model before a real administrator is made.
+The Google client, callback registration and real provider test remain unverified.
+
 Purpose: Record user-directed project decisions and their limits.
 
 Status: Active - Documents 01–10 and Implementation Plan Approved; Ticket Refinement Awaiting Review

@@ -87,7 +87,9 @@ uv run --locked ruff format --check .
 ```
 
 The backend listens on `127.0.0.1:8000` in one process. Stop it with Ctrl+C.
-It loads the repository `.env` explicitly. `APP_ENV` accepts development, test,
+It loads the repository `.env` and then `.env.local`. Local values override
+matching `.env` values; settings absent from `.env.local` remain available from
+`.env`. Process environment values have the highest priority. `APP_ENV` accepts development, test,
 or production; it defaults to development. Invalid configuration stops startup
 with a fixed message. No business routes or API documentation routes exist yet.
 The default app does not open a database or model connection. Request access
@@ -932,7 +934,7 @@ diagnostic IDs, `trace_include_sensitive_data=False`, and
 `ModelSettings(store=False)`. The outer `root_trace` applies the same controls.
 It accepts no customer, account, source, login, or chat identifiers. Model calls
 must use this configuration when TICKET-009 implements agent execution. Request
-stage spans and correlation wiring belong to TICKET-013.
+Request-stage spans and correlation wiring are addressed by TICKET-013.
 
 Tests can inject an in-memory capture processor to check the actual SDK without
 network calls. Diagnostic callback/flush/shutdown errors produce only the fixed
@@ -960,6 +962,187 @@ Package compatibility, lockfile, OpenAPI export and Python compilation checks
 also passed. This proves local configuration behavior with in-memory SDK traces;
 it does not prove live provider retention, developer dashboard access, or native
 export sanitization. No browser review is needed for this ticket.
+
+## Identity bootstrap and access decisions
+
+`AccessWorkflow` verifies the server assertion before resolving a Google
+identity. A verified provider ID and its matching email are bound to one user.
+An email collision is denied. The configured first-admin email, active role,
+explicit scope and `bootstrap_complete` state must be supplied by trusted server
+setup. Missing or malformed bootstrap state denies setup. The workflow does not
+provision a role, database, indexes, or configuration.
+
+Preapproval consumption and administrator decisions use the shared policy fence.
+They change the user, close the related request and write a required audit in one
+application database transaction. Decisions check the current administrator,
+login, policy version and role scope. The workflow rejects self-approval. The
+verifier and authorization service are trusted server dependencies. TICKET-031
+connects the Google callback to the internal identity routes; protected actions
+must still recheck identity and current grants. No operational account or role is
+used to grant application access.
+
+The workflow tests use synthetic identities and a transaction substitute. They
+do not prove real MongoDB transactions, indexes or concurrent behavior. Do not
+enable production bootstrap until its setup and database behavior are verified.
+
+## Google login integration
+
+NextAuth V4 handles Google authentication. Its server callback validates the
+verified profile and sends a signed assertion to the fixed loopback backend.
+The backend exchanges, renews and revokes login bindings. The browser session
+contains no Google access token or internal assertion. The application fails
+closed when login settings or services are unavailable. Login does not grant
+business access; current backend approval and grants remain authoritative.
+
+The backend and Next.js read the repository `.env.local` over `.env`. Next.js
+also supports its own `frontend/.env.local`; existing process values take
+precedence. Keep all environment files private. Their example files list the
+required variables. Configure the same issuer, audience, key ID,
+and key activation timestamp on both services. Configure the public key only in
+the backend and the matching private key only in the Next.js server environment.
+The bootstrap email, existing admin role ID, and explicit JSON array of grant
+objects must be reviewed and configured. `IDENTITY_ENABLED` defaults to false.
+The login startup does not create databases, indexes, roles, or signing keys.
+Prepare and verify the required application indexes separately before use.
+
+Register the exact NextAuth Google callback URL for the configured
+`NEXTAUTH_URL`. HTTP is accepted only for loopback development. The application
+checks the request host, forwarded host and protocol, and POST origin against
+that URL. An external proxy or non-loopback deployment needs separate review.
+On logout cleanup failure, the route returns an error without clearing the
+session cookie. A successful logout response requires backend revocation and
+temporary-context cleanup. The cleanup guarantee covers this one process.
+
+The default offline tests use synthetic provider identities, signing keys and a
+database substitute. Separate isolated tests have exercised real MongoDB
+transactions and one authorized Google sign-in and sign-out. Other Google
+negative cases and deployment readiness remain unverified. The backend may load
+retired public keys from `IDENTITY_PREVIOUS_KEYS` as a JSON array. Each entry
+requires `kid`, `public_key`, integer Unix times `activated_at` and `retired_at`,
+and a Boolean `revoked`. Keep private keys out of this setting. Planned retired
+keys are accepted only within the existing 210-second overlap; revoked keys are
+denied immediately. Reused key IDs or public key material fail startup.
+
+For compromise, use the trusted server-only `contain_signing_key_compromise`
+operator function. It locks the local verifier and closes temporary memory.
+It writes permanent rejected key IDs, public-key fingerprints and a global
+sign-in cutoff with a required audit event in one majority-committed transaction.
+All earlier logins become invalid because their signing-key origin is unknown.
+Old replay records remain. A replacement key requires a new verified sign-in.
+Live checks read the durable state again before release. Current policy checks
+and the shared commit fence block late protected results. Missing or malformed
+security state and read failures deny access. The operation has no HTTP route.
+
+Keep serving processes stopped if containment or confirmation fails. A local
+lock is not durable proof after a failed database write. Do not resume after
+restart until the operation is confirmed. Do not delete or roll back incident
+state. The single-process code has offline and real isolated MongoDB evidence;
+the user has approved the operator procedure. See
+[Ticket 031 limits](planning/TICKET-031-LOGIN-LIMITS.md#5-signing-key-rotation-and-compromise-response)
+for the procedure, commands and exact evidence limits. No real keys were revoked.
+Do not put secrets in test fixtures, logs, or commits.
+
+## Own access status and requests
+
+TICKET-032 adds the backend routes `GET /v1/me` and `POST /v1/access-requests`.
+Both require a server-signed assertion bound to the exact method and path and a
+current login generation. The request body and query string must be empty.
+The caller cannot choose a user, email, role or scope in the request. Pending,
+rejected and revoked users receive only their own status. Approved users receive
+their current active role, capabilities and scope choices for configured sites.
+Raw selected-record references are not returned. Current identity and policy are
+rechecked before results leave the service.
+
+Creating a pending request uses the application database's access-control fence
+and required audit in one transaction. An existing active request is returned
+with HTTP 200; a new one returns 201. Rejected or revoked request history cannot
+be resubmitted without an approved policy. Conflicts are retried in bounded new
+transactions, and duplicate recovery rechecks the current user and login. The
+service can still return a conflict if contention persists after those retries.
+The access-request limit defaults to ten per user per minute and is separate from the
+turn limit. It is process-local and resets on restart; it is not a distributed
+rate limit. Missing services, current policy, invalid bodies or signatures deny.
+No real administrator grant or source business data is created by these routes.
+
+The backend response types are in the generated public contract. The Next.js
+browser proxy and access-request screens are separate work; these backend routes
+alone do not add a browser page. Test locally with
+`.venv/Scripts/python.exe -m pytest tests/test_own_access.py tests/test_admission.py -q`.
+The tests use synthetic identities. The separate isolated MongoDB check uses the
+approved loopback test instance and removes only its own synthetic records.
+
+## Role and employee access management
+
+`AccessManagement` provides internal role create/edit/deactivation, approved
+employee grant changes/revocation, and preapproval create/revocation. It does
+not add HTTP routes or UI. Each write requires current `manage_access`
+authorization and the expected policy version. Role and employee updates also
+require the expected record version. The service checks the administrator's
+current user, role and login inside the transaction.
+
+Role capabilities and data grants must fit within the current administrator's
+authority. Each employee scope must fit both the selected role and the
+administrator's scope. The service blocks self-account and own-role changes.
+It checks the full approved-user population before role changes, and it denies
+changes that would remove the last active administrator. It sets timestamps
+and preapproval reviewer identity from trusted server values. Access writes,
+the shared policy update and the required audit use the same app transaction.
+No operational source data is written.
+
+The population read sorts users, rejects more than 1,000 records or one MiB of
+BSON, and gives its MongoDB cursor query a five-second server limit. It fails
+closed when a limit is reached or a read fails. Self-account and own-role edits
+are denied, including safe reductions.
+
+The TICKET-026 tests use synthetic records and a transaction substitute. They
+check role/scope boundaries, expected versions, concurrent last-admin
+revocation, audit rollback and preapproval operations. They do not prove real
+MongoDB transaction isolation, rollback or concurrency. No live database was
+used. These operations need isolated MongoDB verification before use in a live
+identity flow.
+
+## Q-01 offline evaluation
+
+The versioned `tests/q01_evaluation.py` corpus contains invented Q-01 questions,
+fixed expectations, a frozen clock, and synthetic site grants. Run it from the
+repository root with:
+
+```powershell
+.venv-ticket-013/Scripts/python.exe -m pytest tests/test_q01_evaluation.py -q
+```
+
+The scripted agent plans check orchestration and boundaries. They do not measure
+whether a real model understands the questions. Separate checks exercise the
+metric and response builders with invented records and fixed expected values.
+The suite checks incomplete coverage and rejects incorrect tools, filters,
+values, visuals and failure states. It does not contact a database or provider.
+Synthetic policy choices do not approve live lead definitions or access rules.
+
+`tests/live_evaluation_results.py` defines a separate JSON format for future
+live results. It accepts version IDs, case IDs, repetition numbers and boolean
+scores. It rejects extra fields. The caller must use reviewed configuration for
+IDs; a string validator cannot detect every secret disguised as an ID. No live
+adapter or result file is provided. Live tests still require separate approval,
+synthetic data, a reviewed adapter and explicit network and spending permission.
+
+## Request diagnostics and developer access
+
+Request diagnostics use one saved or temporary workflow and fixed stage names.
+Stage data contains only a fixed outcome. It does not contain questions, records,
+tool arguments, or user identifiers. The existing export filter controls which
+SDK data may leave the process. Diagnostic failures do not grant access or change
+the required commit checks.
+
+Only developers authorized in the OpenAI project may inspect exported traces.
+An application administrator role does not grant that access. The application
+does not provide a trace inspection route or trace links. Project membership and
+provider retention settings must be reviewed before enabling real export. The
+normal application startup does not configure a native exporter.
+
+Temporary chat content remains in memory. If export is enabled after review,
+permitted diagnostic metadata may still be stored by the provider. It is not a
+temporary transcript. `store=False` controls supported model response storage;
+it does not disable SDK trace export or establish provider retention terms.
 
 ## Trace export filtering
 

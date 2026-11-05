@@ -29,6 +29,7 @@ class StorageCapability(StrEnum):
     READ_POLICY = "read_policy"
     READ_CHATS = "read_chats"
     WRITE_CHATS = "write_chats"
+    REVOKE_IDENTITY_KEYS = "revoke_identity_keys"
 
 
 class InternalAuthorizationContext(BaseModel):

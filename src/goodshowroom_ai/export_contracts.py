@@ -63,7 +63,7 @@ def public_openapi() -> dict:
         },
         "paths": {},
         "components": {"schemas": schemas},
-        "x-contract-stage": "Q-01 schemas only; no active business endpoints",
+        "x-contract-stage": "Q-01 and own-access schemas; no business-data endpoints",
         "x-contract-limits": {
             "request_bytes": MAX_REQUEST_BYTES,
             "response_bytes": MAX_WIRE_BYTES,

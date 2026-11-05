@@ -11,7 +11,7 @@ from enum import StrEnum
 from typing import Literal
 from uuid import UUID
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from goodshowroom_ai.authorization import Contract
 from goodshowroom_ai.execution import (
@@ -177,6 +177,74 @@ class ChatResultEnvelope(CreateChatRequest):
     data: ChatTurnData
 
 
+class OwnScopeChoice(Contract):
+    dataset: Literal["byd-leads-new", "byd-panel"]
+    sites: list[str] = Field(min_length=1, max_length=100)
+    fields: list[str] = Field(min_length=1, max_length=100)
+    tools: list[str] = Field(max_length=100)
+    metrics: list[str] = Field(max_length=100)
+    record_mode: Literal["assigned", "selected", "all_permitted"]
+
+
+class OwnAccessData(Contract):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "allOf": [
+                {
+                    "if": {
+                        "type": "object",
+                        "properties": {"access_status": {"const": "approved"}},
+                        "required": ["access_status"],
+                    },
+                    "then": {
+                        "type": "object",
+                        "properties": {"role": {"type": "string", "minLength": 1}},
+                    },
+                    "else": {
+                        "type": "object",
+                        "properties": {
+                            "role": {"type": "null"},
+                            "capabilities": {"type": "array", "maxItems": 0},
+                            "scope_choices": {"type": "array", "maxItems": 0},
+                        },
+                    },
+                }
+            ]
+        }
+    )
+    access_status: Literal["pending", "approved", "rejected", "revoked"]
+    role: str | None = Field(max_length=100)
+    capabilities: list[
+        Literal["chat", "review_saved_chats", "manage_access", "manage_settings"]
+    ] = Field(max_length=4)
+    scope_choices: list[OwnScopeChoice] = Field(max_length=100)
+
+    @model_validator(mode="after")
+    def status_scope(self):
+        if self.access_status != "approved" and (
+            self.role is not None or self.capabilities or self.scope_choices
+        ):
+            raise ValueError("Unapproved users cannot receive access choices")
+        if self.access_status == "approved" and not self.role:
+            raise ValueError("Approved users require a role")
+        return self
+
+
+class OwnAccessEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: OwnAccessData
+
+
+class OwnRequestData(Contract):
+    id: UUID
+    status: Literal["pending"]
+
+
+class OwnRequestEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: OwnRequestData
+
+
 class ApiError(Contract):
     code: ErrorCode
     message: str = Field(min_length=1, max_length=200)
@@ -198,7 +266,14 @@ class ErrorEnvelope(CreateChatRequest):
     error: ApiError
 
 
-PUBLIC_MODELS = (CreateChatRequest, TurnRequest, ChatResultEnvelope, ErrorEnvelope)
+PUBLIC_MODELS = (
+    CreateChatRequest,
+    TurnRequest,
+    ChatResultEnvelope,
+    ErrorEnvelope,
+    OwnAccessEnvelope,
+    OwnRequestEnvelope,
+)
 
 
 def _bounded_tree(value):

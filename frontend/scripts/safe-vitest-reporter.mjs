@@ -1,5 +1,7 @@
 const safeUnitNames = new Map([
   ["renders the current local workspace page", "home-page"],
+  ["uses NextAuth to reject cancellation and sign-out without its CSRF token", "auth-cancellation-csrf"],
+  ["detects a NextAuth sign-out event failure after CSRF verification", "auth-logout-failure"],
 ]);
 
 export default class SafeVitestReporter {

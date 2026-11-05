@@ -2,7 +2,336 @@
 
 Purpose: Track verified documentation and implementation progress for this repository.
 
-Status: Implementation - 24 tickets Done; TICKET-010 In Review; 33 Backlog
+Status: Implementation - 30 tickets Done; TICKET-031 and TICKET-032 In Review; 26 Backlog
+
+## TICKET-032 implementation for review
+
+The authenticated backend own-status and access-request routes are implemented.
+They check the current signed identity and login, withhold role/scope data from
+unapproved users, reject non-empty request bodies, and bind requests to the
+caller. Duplicate recovery uses current-state checks and bounded conflict retry.
+The separate process-local access limit defaults to ten requests per user per
+minute. The backend and frontend public response contracts include the new types.
+
+Final checks: 975 offline backend tests and 77 frontend unit tests passed. Backend
+Ruff lint/format and contract checks passed. Frontend typecheck, lint and contract
+checks passed. The approved isolated MongoDB instance passed the synthetic status,
+audit rollback and six-concurrent-request checks in three consecutive runs and a
+final run. Synthetic records were removed. An earlier run produced conflict
+responses; duplicate recovery was fixed before the passing runs. One earlier
+offline suite failed because the expected public schema list was outdated; its
+test was updated and the final suite passed. Postman managed configuration remains
+unreadable. No business data, production grant or deployment was used.
+
+The browser proxy and access-request screens are separate work. The rate limit
+is process-local and resets on restart. Sustained contention can return a
+conflict after bounded retries. TICKET-031 remains In Review with real
+administrator site IDs open. TICKET-032 is In Review pending required review.
+TICKET-033 is next by dependency order; wait for explicit authorization.
+
+## TICKET-032 start
+
+This historical start entry is superseded by the implementation entry above.
+
+The user authorized starting this ticket while keeping TICKET-031 In Review.
+All four listed dependencies are Done. The approved contract requires authenticated
+own-status access and an empty-body access request, with safe duplicate handling.
+Existing login and request-storage code was inspected. The current admission
+controller covers chat turns; the new routes still require authenticated rate
+limiting. Pending users require identity checks without requiring a business role.
+No Ticket 032 route has been added yet. The admission controller has a separate
+access-request window using the existing ten-per-minute limit. Its caller must
+pass an already authenticated typed user ID. The method is not yet wired to a
+route. The focused admission suite passed 9 tests, including two new synthetic
+rate-limit tests; Ruff lint and format checks passed. This entry supersedes
+earlier historical notes that Ticket 032 was not authorized.
+
+## TICKET-031 manual cancellation passed; site IDs kept open
+
+Review decision: the user explicitly selected "Keep Ticket 031 In Review" when
+asked about closure with administrator setup deferred. Do not mark it Done.
+Canonical site IDs and remaining grant details stay open. This is not approval
+to start Ticket 032 or create real grants.
+
+The user tested the consent-screen flow with the approved account. Google showed
+Cancel. After cancellation, the local site showed its generic sign-in error.
+The user confirmed that this worked properly. This is real user-observed
+cancellation evidence, not an agent inspection or a synthetic callback. No
+additional account is needed. No new database-state result is claimed.
+This supersedes the earlier notes that real cancellation was unverified.
+The user explicitly chose to keep site IDs open. Administrator setup remains
+deferred; approved branch coverage has not created real grants. Ticket 031
+remains In Review pending acceptance of this deferred setup. No runtime change
+or new ticket was started for this documentation update.
+
+## TICKET-031 consent-screen preparation and site discovery
+
+User follow-up: inclusion of all listed branches and both holding yards is now
+approved. The administrator review record and decision log reflect that approval.
+Stable canonical IDs, alias mappings and remaining grant details are still open.
+The generic `BYD Dealership` label remains blocked. No real grants were created.
+
+Remaining-limits preparation: the isolated Google helper now requests consent
+again with `prompt=consent`. This option is restricted to test mode at
+`http://localhost:3000`. The frontend unit suite passed 75 tests; type checking
+and lint passed. Ruff checks passed for the helper. The helper was restarted
+gracefully, and Playwright MCP confirmed the local Google sign-in button.
+No Google account inspection or real cancellation test was performed.
+
+The user authorized source database reads for dealership discovery. Field-limited
+queries returned 20 lead site labels and 5 delivery labels. One dealership
+registry ID was found for DENZA Melbourne. No complete common site registry was
+found in the checked sources. `TICKET-031-ADMIN-APPROVAL.md` records the names,
+source ID, alias questions and yard/generic-label decisions. Source reads returned
+no customer fields or business totals and made no writes. Stable AI-layer IDs
+and grants still need approval. TICKET-031 remains In Review.
+
+## TICKET-031 security procedure approved
+
+The user explicitly approved the documented containment procedure. This closes
+item 5's operator review for the implemented single-process response and isolated
+verification. It does not authorize a real key change or deployment. Technical
+review checked current verifier/startup/storage behavior against the procedure.
+The focused incident, setup and lifecycle suite passed 33 synthetic tests.
+No runtime code changed. Earlier notes that this procedure needs review are
+superseded by this entry. Real Google cancellation remains unverified. The user
+keeps administrator site IDs open; no real grants were created. TICKET-031 remains
+In Review. TICKET-032 was not started.
+
+## TICKET-031 local browser follow-up
+
+The user reported reaching the GoodShowRoom page after Google sign-in and reported
+that Google did not show a cancellation button. The isolated local backend
+reported successful login-route responses. This does not verify cancellation.
+The delegated Playwright MCP check opened the local placeholder home page. MCP
+could not create an isolated browser context. The check used the existing context
+only for the public local page and did not inspect the Google account session.
+The isolated website, backend and approved test database remain running.
+The operator procedure still needs review. Site IDs remain open. TICKET-031
+remains In Review and TICKET-032 has not been started.
+
+## TICKET-031 compromise response and remaining review - 2026-11-03
+
+This entry supersedes the earlier incomplete compromise-response notes below.
+The trusted operator function now locks the verifier and closes temporary memory.
+It commits rejected key IDs, public-key fingerprints and a global sign-in cutoff
+with the required audit and policy fence. The transaction uses majority write
+confirmation. All earlier logins become invalid; key provenance is unavailable.
+Old authentication cannot rebind through a fresh login ID or healthy key.
+Protected login reads/writes and final authorization checks enforce the cutoff.
+Old saved-turn snapshots conflict with the incident fence. A fresh sign-in after
+the cutoff works with a replacement key. There is no new HTTP endpoint or grant.
+
+The 20 new offline incident cases passed. The real isolated MongoDB check passed
+audit rollback, durable state after fresh object construction, old-login denial,
+fresh authentication, concurrent incidents and stale-work commit denial.
+The approved instance was stopped at the first attempt. The same instance was
+restarted with its checked saved directory and loopback port 33719. Test records
+were removed; indexes and the running database remain. No separate MongoDB
+service, operational data, real key rotation, environment edit or deployment was
+used. The weekly database-removal reminder was left unchanged.
+
+Playwright MCP is available. The required Google check was delegated to GPT-6.1
+Terra with low reasoning. No Google account session was inspected. Browser
+outputs can expose the authentication details and private data covered by the
+prior rejection. Real Google cancellation remains unverified. The limits record
+gives a manual local review path for the approved account; no second account is
+needed. No local website was started for this review. The normal UI remains a
+placeholder.
+
+Site IDs and real administrator scope remain open. No real role or grant was
+created. The administrator approval list remains a draft. The operator procedure
+also needs review. On any failed incident write or confirmation, keep services
+stopped; a process-local lock does not establish durable revocation after restart.
+TICKET-031 stays In Review. TICKET-032 is the next eligible ticket after this
+review and explicit user approval. It adds own-status and access-request APIs.
+It was not started.
+
+Final checks for this run: `.venv/Scripts/python.exe -m pytest -q` passed
+963 tests. Ruff lint and format checks passed for the full backend tree.
+The extended isolated MongoDB test and loopback HTTP transport test passed.
+Frontend `test:unit` passed 71 tests, including synthetic cancellation.
+Frontend type checking, lint, contract comparison and `check:setup` passed.
+The setup check includes a production build, private-value scans and temporary
+loopback HTTP checks. Its old `.env`-only expectation failed under the approved
+`.env.local` priority. `frontend/scripts/check-setup.mjs` now checks both files,
+correct precedence and unchanged file hashes, without printing their values.
+The generated `frontend/next-env.d.ts` content was restored to its starting
+state after the build. No existing uncommitted change was reverted.
+
+Early runs encountered Windows sandbox errors for file writes, child processes
+and pytest folders. Approved checks outside the sandbox passed. Early incident
+tests also needed corrected test doubles, the existing login read capability,
+and the safe storage error returned for an old MongoDB snapshot. These were
+repaired before the passing runs. Postman still cannot read its managed Private
+Cloud manifest. No Postman simulation ran and no managed policy was changed.
+
+## TICKET-031 remaining limits follow-up
+
+The user chose to use only their existing Google account and keep site IDs open.
+An isolated test configured the account as pending. Google sign-in succeeded,
+the backend did not grant it a usable authorization policy, and sign-out revoked
+the login. A second sign-in created a new binding for the same pending user while
+the prior binding remained revoked. A business-data administrator role remains
+uncreated. `TICKET-031-ADMIN-APPROVAL.md` lists the choices for review.
+
+Backend startup can now load bounded metadata for previous verification keys.
+It rejects duplicate IDs and reused key material, and verifier checks deny a
+revoked key. Existing sessions and active work are not yet invalidated on key
+compromise. Do not treat this partial work as an operational response.
+The final offline backend suite passed 943 tests. The user asked to keep site IDs
+open; the administrator review list records the remaining decisions. The real
+Google cancellation check still needs an observed cancellation outcome.
+A synthetic denial callback returned to the local error page; this is not a real
+Google cancellation. The isolated test services were stopped and their temporary
+records were removed after the tests.
+
+## TICKET-031 local callback port follow-up
+
+The live Google test now checks both IPv4 and IPv6 loopback port 3000 and gives a
+safe message when a required port is busy. This addresses a discovered conflict
+with another local website. Six synthetic port-reservation tests passed,
+including IPv4 and IPv6 wildcard listeners. The
+test still has a short race between releasing its reservations and the frontend
+binding, so check active listeners before navigating to the callback.
+
+After the conflicting website was stopped, the isolated frontend returned 200.
+A synthetic invalid assertion was rejected. The user completed Google sign-in;
+the exchange returned 200 and one approved user and active login were observed
+in the isolated database. Sign-out returned 204 and the login was revoked. No
+business database was used.
+
+## TICKET-031 live login follow-up
+
+The selected Google account signed in against the isolated local services and
+MongoDB. One approved test user and one active login were observed; sign-out
+returned 204 and the login was revoked. The initial login failed with a 409. A
+real MongoDB regression reproduced the problem with sub-millisecond timestamps;
+the exchange now uses MongoDB's millisecond precision, and the regression passed.
+The test used a synthetic role and no business data. The local test server uses
+Webpack because its restricted Turbopack setup produced a page error; the local
+home page then returned 200 and browser review found no runtime error. A separate
+check of the normal development server also returned 200. The full
+offline backend suite passed 935 tests after the configuration change. Frontend
+environment precedence, type and lint checks also passed.
+
+Both services now read repository `.env.local` over `.env`, with process
+environment values taking precedence. The user's settings were not displayed or
+moved. Live cancellation, unapproved accounts and fresh login after revocation,
+and the operational signing-key lifecycle remain unverified.
+
+## TICKET-031 limits: isolated integration follow-up
+
+The user selected one backend process, authorized test-only keys, selected the
+supplied Gmail account for the initial isolated-test administrator, and selected
+all business data for that administrator. No real role or grant has been created.
+The local HTTP check now runs the actual frontend transport and backend routes
+with synthetic keys and a database substitute. The isolated MongoDB check uses
+the real driver and replica-set transactions with synthetic records, checks
+indexes, replay, collisions, concurrent exchange, conflict retry, renewal,
+rollback, revocation and cleanup, and retains only indexes. The Google client
+settings are absent from local frontend environment files. The selected Google
+Cloud client's localhost callback and the designated Google test user were added
+and verified in the cloud settings. Live Google remains unverified. Operational
+signing-key rotation and affected-generation invalidation
+also remain unimplemented. See the limits checklist for commands and boundaries.
+Final verification for this follow-up: the offline backend suite passed 934
+tests; the frontend unit suite passed 71 tests and its type check passed. The
+standalone loopback HTTP and real isolated MongoDB checks also passed.
+
+## TICKET-031 limits follow-up
+
+Synthetic backend checks now connect signed logout to the real single-process
+temporary-memory store. They verify active-work cancellation, context removal,
+and the revoked record in a database substitute. Seven malformed identity
+configurations also fail closed. The focused login, setup, temporary-memory and
+identity-bridge suite passed 69 tests. This uses in-process HTTP and synthetic
+keys; it does not prove real network transport, Google, or MongoDB. Postman still
+cannot read its managed configuration. The user authorized a separate disposable
+test database. A local-only MongoDB 9.0 replica set now runs on port 33719, in
+its own directory. Its primary state was verified, but app indexes, records and
+transactions have not been tested. The existing running MongoDB service was not
+used. The test instance has no authentication and is for synthetic data only.
+Remind the user to remove it when no longer needed. Key lifecycle ownership also
+appears in TICKET-001. TICKET-031
+remains In Review and the limits checklist remains open.
+
+## TICKET-016 and TICKET-026 approval - 2026-10-28
+
+The user approved both tickets and directed that they be marked Done. Their
+unchecked criteria and recorded evidence limits remain. Real isolated MongoDB
+transaction, rollback and concurrency checks, browser privacy notices, and
+provider export/transport verification remain release verification items.
+TICKET-031 continues as the authorized next ticket.
+
+## TICKET-031 start - 2026-10-28
+
+Review update: NextAuth callback, fixed loopback signed transport, backend
+startup wiring, and exchange/renew/revoke are implemented. Synthetic tests cover
+the NextAuth callback with mocked Google, state/PKCE, CSRF and cleanup failure,
+plus a real Node signer against the backend ASGI route with a fake database.
+The final offline backend suite passed 925 tests. Frontend unit tests passed 71;
+type checking, lint, production build, setup and contract checks also passed.
+An earlier backend run exposed an app route registration regression; it was
+fixed before the passing run. The contract check initially failed on Windows
+line endings; its comparison now accepts the same content with either ending.
+The Postman CLI could not read its managed configuration; no Postman simulation
+ran. No live Google, real MongoDB, or external provider was contacted. Actual
+Google RS256 validation, real database isolation/indexes, network transport,
+operational key rotation and deployment remain unverified. TICKET-031 is In
+Review; wait for user review before Done or the next ticket.
+
+Follow-up: added signed backend renewal and revocation routes for explicitly
+injected services. Renewal is bounded by the assertion issuance time, login
+expiry, and five-minute lease. Revocation commits before temporary cleanup; a
+cleanup failure returns an error and a repeated signed revoke can retry cleanup.
+The tests use synthetic assertions and an isolated fake database. NextAuth,
+runtime service configuration, real database behavior, and live Google remain
+unverified. TICKET-031 remains In Progress.
+
+Follow-up: added a backend exchange route and an atomic identity/login exchange
+for an explicitly injected trusted workflow. An unconfigured app fails closed.
+Signed synthetic tests exercise exchange, replay, collision, revocation denial,
+and rollback in an isolated fake transaction. NextAuth, runtime configuration,
+renewal, revocation, and real database/provider verification remain pending.
+TICKET-031 remains In Progress.
+
+Follow-up on 2026-10-29: reviewed the existing identity helper, signed assertion
+validator, access workflow, and login storage. Added synthetic tests for the
+installed Google provider defaults and additional invalid callback profiles.
+The frontend unit suite passed 59 tests outside the sandbox; type checking and
+lint passed. This tests provider configuration, not a Google callback. The
+focused identity, login-storage, and access-workflow backend suites passed 76
+tests outside the sandbox. An earlier sandbox run executed the tests but failed
+during temporary-directory cleanup.
+The backend still has no internal login HTTP routes. The access workflow resolves an
+identity but does not create the login record in its transaction. NextAuth is not
+wired to the backend. Exchange, renewal, revocation, and callback integration
+remain unimplemented and their acceptance criteria remain unchecked. No live
+Google or database connection was used.
+
+On 2026-10-29 installed the approved `next-auth` 4.24.15 dependency and
+restored missing frontend dependencies. `npm run test:unit` passed 54 cases and
+`npm run typecheck` passed. `npm audit --omit=dev` reported zero production
+findings; the install reported three findings in the full dependency tree.
+Google callback wiring, backend login routes, and integration checks remain
+pending. The ticket remains In Progress.
+
+Partial implementation on 2026-10-29: added server-only validation for a Google
+callback profile and synthetic unit cases. This helper checks a matching Google
+provider account ID and verified email but does not verify an ID token or perform
+authentication. It is not wired to NextAuth or the backend. The frontend unit
+runner exited with failure after reporting 12 passes; its safe reporter did not
+identify the failing suite. Type checking also failed because `jsonc-parser` is
+missing from the installed dependencies, and the sandbox denied a build-info write.
+Google login, backend routes and integration verification remain pending.
+
+The user authorized the next ticket. TICKET-031 is In Progress. Its registered
+dependencies TICKET-001, TICKET-018, TICKET-020, TICKET-025, TICKET-030 and
+TICKET-057 are Done. Reviewed the approved login routes, identity and security
+requirements, frontend instructions, and existing identity/login-storage entry
+points. Implementation and verification remain pending. No live provider or
+database was contacted. TICKET-016 and TICKET-026 were then In Review and are now Done with recorded limits.
 
 ## Repository Discovery
 
@@ -23,11 +352,11 @@ Status: Implementation - 24 tickets Done; TICKET-010 In Review; 33 Backlog
 - `docs/10-TEST-STRATEGY.md`: Approved by user (2026-10-22); test requirements are approved. Offline backend and frontend harness checks are recorded under TICKET-019/020; real application journeys and integration/live verification remain pending.
 - `docs/DECISIONS.md`: Implementation Plan approval and authorized ticket refinement recorded (2026-10-22); earlier entries retain chronology.
 - `planning/IMPLEMENTATION-PLAN.md`: Approved by user (2026-10-22); coverage/owner handoff synchronized to the refined register, whose decomposition is approved.
-- `Tickets.md`: Approved register; 19 tickets Done; TICKET-008 In Review; 38 Backlog.
+- `Tickets.md`: Approved register; 30 tickets Done; TICKET-031 In Review; 27 Backlog.
 
 ## Implementation
 
-- Nineteen tickets are Done with recorded limits. TICKET-008 is In Review; 38 tickets remain Backlog.
+- Thirty tickets are Done with recorded limits. TICKET-031 is In Review; 27 tickets remain Backlog.
 - Local configuration prepared: operational URIs are in the ignored `.env`; `.env.example` contains no credentials. `byd_ai_layer` is the configured app database name; it has not been created or inspected. User-supplied values were preserved.
 - Earlier environment presence checks found operational/AI MongoDB settings, OpenAI key/model, Google client ID/secret, and session secret populated, and `NEXTAUTH_URL` empty at that time. Concurrent user configuration changes were preserved; values were not revalidated in this Tech Stack step. Configure the initial-admin email/callback during login setup. OpenAI/Google credentials, login, and application behavior have not been tested.
 
@@ -43,7 +372,34 @@ Status: Implementation - 24 tickets Done; TICKET-010 In Review; 33 Backlog
 
 ## Current Implementation Step
 
-TICKET-057 and TICKET-028 were approved with their recorded limits and marked Done on 2026-10-26. The user authorized TICKET-008 on 2026-10-26. Its TICKET-002, TICKET-007, TICKET-021, and TICKET-028 dependencies are Done.
+The user approved TICKET-016 and TICKET-026 with recorded limits and authorized TICKET-031 on 2026-10-28. TICKET-031 dependencies TICKET-001, TICKET-018, TICKET-020, TICKET-025, TICKET-030 and TICKET-057 are Done. Login integration implementation and verification remain pending.
+
+## TICKET-016 implementation review - 2026-10-27
+
+- OpenCode 2 with the configured free DeepSeek model authored three synthetic cross-boundary privacy and failure tests. Focused checks passed 174 tests; the full offline suite passed 902. Lint, format and whitespace checks passed.
+- The tests do not prove real MongoDB transaction behavior, provider export, browser notices or transport integration. TICKET-016 is In Review. The user authorized TICKET-026 in the same run; its dependencies are Done.
+
+## TICKET-026 implementation review - 2026-10-27
+
+- Added fenced and audited role, employee-access and preapproval changes. OpenCode 2 used only the approved free DeepSeek model at high reasoning to author 13 tests, including a regression test for `AccessWorkflow.decide` capability and scope limits. The focused workflow/storage suite passed 50 tests; the full offline suite passed 915 tests. Ruff, formatting, compilation, API contract and whitespace checks passed.
+- Tests use a rollback fake. They do not prove real MongoDB transaction isolation, rollback or concurrent last-admin behavior. The scope criterion is verified; the concurrency and transaction criteria remain open. TICKET-026 is In Review.
+
+## TICKET-025 completion - 2026-10-27
+
+- Added verified identity resolution, first-admin bootstrap, preapproval consumption and administrator decisions behind the existing transaction fence and required audit. The configured role/scope and control state require separate reviewed setup.
+- GPT-6.1 Terra low authored the synthetic workflow tests. The final offline suite passed 899 tests; lint, formatting, compilation, API contract and whitespace checks passed. A prior full run hit a subprocess timeout; the rerun passed. See TICKET-025 for details.
+- The user approved TICKET-025 with its recorded limits. It is Done. Real MongoDB concurrency and rollback, setup and Google integration remain pending.
+
+## TICKET-014 completion - 2026-10-27
+
+- Added a versioned synthetic Q-01 corpus, offline scoring checks and a separate safe live-result format. GPT-6.1 Terra low authored the evaluation code. The final offline suite passed 889 tests; lint, formatting, compilation, contract and whitespace checks passed.
+- The user approved TICKET-014 with its recorded limits. It is Done. The live adapter and live score remain unavailable. Scripted plans do not measure model understanding. TICKET-013 remains separately In Review. No provider or real database was contacted.
+
+## TICKET-013 implementation review - 2026-10-27
+
+- Added fixed request-stage SDK diagnostics and documented developer access and temporary-chat privacy. Export remains disabled in normal startup. Real project membership and provider retention remain unreviewed.
+- GPT-6.1 Terra low authored the synthetic tracing tests and updated the agent test stub. The final offline suite passed 853 tests. Ruff lint and format, Python compilation, OpenAPI contract and Git whitespace checks passed. See TICKET-013 for commands and earlier repaired failures.
+- TICKET-013 remains In Review. TICKET-014 was its next eligible foundation ticket and is now Done with user approval and recorded limits. TICKET-016 and TICKET-026 remain In Review. No browser, live model, provider or database integration was tested.
 
 ## TICKET-028 - Saved-chat parents - 2026-10-26
 

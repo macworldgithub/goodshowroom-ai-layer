@@ -308,27 +308,36 @@ class PrimaryAgentService:
     async def run_turn(
         self, principal: Principal, context: ResponseContext, command: TurnCommand
     ) -> AgentTurnOutcome:
-        if (
-            not isinstance(context, ResponseContext)
-            or not isinstance(command, TurnCommand)
-            or not isinstance(principal, Principal)
-            or (
-                context.owner_id != principal.user_id
-                or context.request_id != command.request_id
+        mode = context.mode if isinstance(context, ResponseContext) else "saved"
+        with self._tracing.root_trace(mode):
+            return await self._run_turn(principal, context, command)
+
+    async def _run_turn(
+        self, principal: Principal, context: ResponseContext, command: TurnCommand
+    ) -> AgentTurnOutcome:
+        with self._tracing.stage("argument_validation"):
+            if (
+                not isinstance(context, ResponseContext)
+                or not isinstance(command, TurnCommand)
+                or not isinstance(principal, Principal)
                 or (
-                    context.mode == "temporary"
-                    and context.chat_login_id != principal.login_id
+                    context.owner_id != principal.user_id
+                    or context.request_id != command.request_id
+                    or (
+                        context.mode == "temporary"
+                        and context.chat_login_id != principal.login_id
+                    )
+                    or (context.mode == "saved" and context.chat_login_id is not None)
                 )
-                or (context.mode == "saved" and context.chat_login_id is not None)
-            )
-        ):
-            raise AccessDenied("Access is not allowed.")
+            ):
+                raise AccessDenied("Access is not allowed.")
         async with self._admission.admit_turn(principal.user_id, context.session_id):
             budget = ExecutionBudget()
             async with budget.deadline():
-                decision = await self._authorization.authorize(
-                    principal, self._action(context)
-                )
+                with self._tracing.stage("authorization"):
+                    decision = await self._authorization.authorize(
+                        principal, self._action(context)
+                    )
                 run_id = None
                 committing = False
                 if context.mode == "saved":
@@ -393,17 +402,28 @@ class PrimaryAgentService:
                     history = await self._filter_history(
                         principal, context, history, sites
                     )
-                    items = build_context(history, command, context, budget)
-                    with self._tracing.root_trace(context.mode):
+                    with self._tracing.stage("context_preparation"):
+                        items = build_context(history, command, context, budget)
+                    with self._tracing.stage("response_construction"):
                         built = await self._interpret(
                             principal, context, history, items, sites, decision, budget
                         )
-                        built = await self._release(principal, context, built, decision)
+                        with self._tracing.stage("final_policy_check"):
+                            built = await self._release(
+                                principal, context, built, decision
+                            )
                         if context.mode == "saved":
                             committing = True
-                            committed = await self._repository.commit_completed_turn(
-                                decision, context.session_id, command, built, run_id
-                            )
+                            with self._tracing.stage("persistence"):
+                                committed = (
+                                    await self._repository.commit_completed_turn(
+                                        decision,
+                                        context.session_id,
+                                        command,
+                                        built,
+                                        run_id,
+                                    )
+                                )
                             if committed.status == "unknown":
                                 return AgentTurnOutcome(status="unknown")
                             built = await self._release(
@@ -415,9 +435,10 @@ class PrimaryAgentService:
                             return AgentTurnOutcome(
                                 status="committed", built=built, turn=committed.turn
                             )
-                        await self._memory.commit_completed_turn(
-                            principal, context, command, built
-                        )
+                        with self._tracing.stage("memory"):
+                            await self._memory.commit_completed_turn(
+                                principal, context, command, built
+                            )
                         built = await self._release(principal, context, built, decision)
                         await self._memory.validate_release(principal, context, command)
                         return AgentTurnOutcome(status="complete", built=built)
@@ -485,9 +506,10 @@ class PrimaryAgentService:
                 if selected not in sites:
                     raise AccessDenied("Access is not allowed.")
                 await self._authorization.recheck(decision)
-                built = await self._responses.build_metric(
-                    principal, context, MetricRequest(site=selected)
-                )
+                with self._tracing.stage("data_validation"):
+                    built = await self._responses.build_metric(
+                        principal, context, MetricRequest(site=selected)
+                    )
             return "verified_result_ready"
 
         tools = (
@@ -497,8 +519,10 @@ class PrimaryAgentService:
             invoke = tools[0].on_invoke_tool
 
             async def invoke_validated(tool_context, raw):
-                _validate_tool_input(raw)
-                return await invoke(tool_context, raw)
+                with self._tracing.stage("argument_validation"):
+                    _validate_tool_input(raw)
+                with self._tracing.stage("tool_execution"):
+                    return await invoke(tool_context, raw)
 
             tools[0].on_invoke_tool = invoke_validated
         agent = Agent(

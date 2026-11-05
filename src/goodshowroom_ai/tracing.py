@@ -11,7 +11,13 @@ from contextlib import contextmanager
 from typing import Literal
 from uuid import uuid4
 
-from agents import ModelSettings, RunConfig, set_trace_processors, set_tracing_disabled
+from agents import (
+    ModelSettings,
+    RunConfig,
+    custom_span,
+    set_trace_processors,
+    set_tracing_disabled,
+)
 from agents.tracing import get_trace_provider, set_trace_provider, trace
 from agents.tracing.processor_interface import TracingProcessor
 from agents.tracing.provider import DefaultTraceProvider
@@ -129,6 +135,37 @@ class TracingRuntime:
             if root is not None:
                 try:
                     root.finish(reset_current=True)
+                except Exception:
+                    _logger.warning("tracing_diagnostic_failure")
+
+    @contextmanager
+    def stage(self, name: str):
+        """Capture a fixed stage without passing application data to the SDK."""
+        span = None
+        try:
+            span = custom_span(name, data={}, disabled=not self.enabled)
+            span.start(mark_as_current=True)
+        except Exception:
+            _logger.warning("tracing_diagnostic_failure")
+        try:
+            yield
+        except BaseException:
+            if span is not None:
+                try:
+                    span.span_data.data["outcome"] = "failed"
+                except Exception:
+                    _logger.warning("tracing_diagnostic_failure")
+            raise
+        else:
+            if span is not None:
+                try:
+                    span.span_data.data["outcome"] = "success"
+                except Exception:
+                    _logger.warning("tracing_diagnostic_failure")
+        finally:
+            if span is not None:
+                try:
+                    span.finish(reset_current=True)
                 except Exception:
                     _logger.warning("tracing_diagnostic_failure")
 

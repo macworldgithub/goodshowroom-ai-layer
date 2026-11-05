@@ -2,12 +2,13 @@
 
 import asyncio
 from datetime import timedelta
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 
 from goodshowroom_ai.api_http import ApiProblem
-from goodshowroom_ai.authorization import AuthorizationService, Principal
+from goodshowroom_ai.authorization import AccessDenied, AuthorizationService, Principal
 from goodshowroom_ai.app import create_app
 from goodshowroom_ai.config import Settings
 from goodshowroom_ai.responses import BuiltResponse, ResponseContext
@@ -198,6 +199,19 @@ async def test_idle_expiry_and_end_prevent_reuse_with_one_unavailable_error():
         await store.begin_turn(principal, expired_context, expired_command)
     assert str(ended.value) == str(expired.value)
     await store.end(principal, replacement.id)
+
+
+@pytest.mark.asyncio
+async def test_refresh_without_temporary_context_needs_no_chat_grant():
+    principal, store, _clock, authorization, _fixture = setup_store()
+    authorization.authorize = AsyncMock(
+        side_effect=AccessDenied("Access is not allowed.")
+    )
+    await store.refresh_login(principal)
+    authorization.authorize.assert_not_awaited()
+    await store.invalidate_login(principal)
+    with pytest.raises(TemporaryUnavailable):
+        await store.refresh_login(principal)
 
 
 @pytest.mark.asyncio

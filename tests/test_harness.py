@@ -52,6 +52,22 @@ def test_real_configuration_is_unavailable():
         Settings(_env_file=root_env)
 
 
+def test_local_environment_overrides_defaults_and_preserves_other_values(
+    tmp_path, monkeypatch
+):
+    shared = tmp_path / "shared.config"
+    local = tmp_path / "local.config"
+    shared.write_text("IDENTITY_ISSUER=shared\nIDENTITY_AUDIENCE=retained\n")
+    local.write_text("IDENTITY_ISSUER=local\n")
+    monkeypatch.delenv("IDENTITY_ISSUER", raising=False)
+    monkeypatch.delenv("IDENTITY_AUDIENCE", raising=False)
+    settings = Settings(_env_file=(shared, local))
+    assert settings.identity_issuer == "local"
+    assert settings.identity_audience == "retained"
+    monkeypatch.setenv("IDENTITY_ISSUER", "process")
+    assert Settings(_env_file=(shared, local)).identity_issuer == "process"
+
+
 @pytest.mark.parametrize("repetition", range(2))
 @pytest.mark.asyncio
 async def test_fixtures_start_clean(

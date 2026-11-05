@@ -11,13 +11,26 @@ class Settings(BaseSettings):
     """Only setup settings are consumed at this stage."""
 
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).resolve().parents[2] / ".env",
+        env_file=(
+            Path(__file__).resolve().parents[2] / ".env",
+            Path(__file__).resolve().parents[2] / ".env.local",
+        ),
         extra="ignore",
         hide_input_in_errors=True,
     )
     app_env: Literal["development", "test", "production", "unknown"] = "unknown"
     openai_tracing_enabled: bool = False
     openai_tracing_include_sensitive_data: bool = False
+    identity_enabled: bool = False
+    identity_issuer: str = ""
+    identity_audience: str = ""
+    identity_key_id: str = ""
+    identity_public_key: str = ""
+    identity_previous_keys: str = ""
+    identity_key_activated_at: int = 0
+    identity_bootstrap_email: str = ""
+    identity_bootstrap_role_id: str = ""
+    identity_bootstrap_scope: str = ""
     app_mongo_uri: SecretStr | None = Field(
         default=None,
         validation_alias=AliasChoices("AI_LAYER_MONGO_URI", "app_mongo_uri"),
@@ -28,6 +41,11 @@ class Settings(BaseSettings):
             "AI_LAYER_CURSOR_ENCRYPTION_KEY", "cursor_encryption_key"
         ),
     )
+
+    @field_validator("identity_key_activated_at", mode="before")
+    @classmethod
+    def empty_identity_key_time_is_unconfigured(cls, value):
+        return 0 if value == "" else value
 
     @field_validator("cursor_encryption_key", mode="before")
     @classmethod

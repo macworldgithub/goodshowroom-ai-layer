@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
 from goodshowroom_ai.storage.logins import LoginRecord
 from goodshowroom_ai.storage.models import utc_datetime
+from goodshowroom_ai.identity_security import public_key_fingerprint
 
 
 class IdentityDenied(PermissionError):
@@ -65,10 +66,45 @@ class VerificationKey:
 
 
 class AssertionVerifier:
-    def __init__(self, *, issuer: str, audience: str, keys: dict[str, VerificationKey]):
+    def __init__(
+        self,
+        *,
+        issuer: str,
+        audience: str,
+        keys: dict[str, VerificationKey],
+        load_security=None,
+    ):
         if not issuer or not audience:
             raise ValueError("Identity configuration is required")
         self.issuer, self.audience, self.keys = issuer, audience, keys
+        self._load_security = load_security
+        self._locked = False
+
+    def lock(self):
+        """Contain an incident in this process, including failed durable writes."""
+        self._locked = True
+
+    @property
+    def locked(self):
+        return self._locked
+
+    async def _check_security(self, kid, key, claims=None, session=None):
+        if self._locked:
+            raise IdentityDenied("Identity assertion denied.")
+        if self._load_security is not None:
+            state = await self._load_security()
+            if not state.allows_key(kid, public_key_fingerprint(key)):
+                raise IdentityDenied("Identity assertion denied.")
+            if session is not None and not state.allows_login(session.auth_started_at):
+                raise IdentityDenied("Identity assertion denied.")
+            if claims is not None and claims.get("purpose") == "bootstrap":
+                if (
+                    state.auth_cutoff is not None
+                    and claims["auth_started_at"] <= state.auth_cutoff
+                ):
+                    raise IdentityDenied("Identity assertion denied.")
+        if self._locked:
+            raise IdentityDenied("Identity assertion denied.")
 
     async def verify(
         self,
@@ -81,6 +117,7 @@ class AssertionVerifier:
         load_login: Callable[[UUID], Awaitable[LoginRecord | None]],
         query: bytes = b"",
         body: bytes = b"",
+        allow_revoked_for_logout: bool = False,
     ) -> dict:
         try:
             now = utc_datetime(now)
@@ -89,6 +126,15 @@ class AssertionVerifier:
                 not isinstance(token, str)
                 or len(token) > 8192
                 or purpose not in {"request", "bootstrap"}
+                or type(allow_revoked_for_logout) is not bool
+                or (
+                    allow_revoked_for_logout
+                    and (
+                        purpose != "request"
+                        or method != "POST"
+                        or path != "/v1/internal/login/revoke"
+                    )
+                )
             ):
                 raise ValueError()
             header = jwt.get_unverified_header(token)
@@ -104,6 +150,7 @@ class AssertionVerifier:
             key = load_pem_public_key(metadata.public_pem)
             if not isinstance(key, RSAPublicKey) or key.key_size != 3072:
                 raise ValueError()
+            await self._check_security(header["kid"], key)
             claims = jwt.decode(
                 token,
                 key,
@@ -179,7 +226,15 @@ class AssertionVerifier:
                     or session is None
                     or str(session.user_id) != claims["sub"]
                     or session.generation != claims["generation"]
-                    or not session.valid(now)
+                    or not (
+                        session.valid(now)
+                        or (
+                            allow_revoked_for_logout
+                            and session.revoked_at is not None
+                            and session.created_at <= session.revoked_at <= now
+                            and now < min(session.expires_at, session.auth_expires_at)
+                        )
+                    )
                 ):
                     raise ValueError()
             else:
@@ -217,6 +272,7 @@ class AssertionVerifier:
                 ):
                     raise ValueError()
             # Caller must recheck at protected release/commit; authorization is a separate service.
+            await self._check_security(header["kid"], key, claims, session)
             if self.keys.get(header["kid"]) != metadata or metadata.revoked:
                 raise ValueError()
             return claims
