@@ -281,3 +281,76 @@ describe("strict raw JSON input", () => {
     expectInvalid("TurnRequest", manyNodes);
   });
 });
+
+describe("admin role and user management contract validation", () => {
+  const roleId = "3f829a28-98e3-462f-87d3-6593a1c6a256";
+  const reqId = "7ed11ca9-26b2-44d3-96f4-351258801ed1";
+  const grant = {
+    dataset: "byd-leads-new", sites: ["site_a"], record_mode: "all_permitted",
+    selected_records: [], fields: ["site"], metrics: [], tools: [],
+  };
+
+  it("validates AdminRoleCreateRequest and rejects duplicate capabilities", () => {
+    const valid = JSON.stringify({
+      name_key: "test_role", active: true, capabilities: ["chat"],
+      grants: [grant], expected_policy_version: 1,
+    });
+    expect(parseApiContract("AdminRoleCreateRequest", valid).name_key).toBe("test_role");
+
+    const dupCaps = JSON.stringify({
+      name_key: "test_role", active: true, capabilities: ["chat", "chat"],
+      grants: [grant], expected_policy_version: 1,
+    });
+    expect(() => parseApiContract("AdminRoleCreateRequest", dupCaps)).toThrow(ApiContractError);
+  });
+
+  it("validates AdminUserAccessUpdateRequest approved and revoked states", () => {
+    const approved = JSON.stringify({
+      approval_status: "approved", role_id: roleId, scope_limit: [grant],
+      expected_version: 1, expected_policy_version: 2,
+    });
+    expect(parseApiContract("AdminUserAccessUpdateRequest", approved).approval_status).toBe("approved");
+
+    const revoked = JSON.stringify({
+      approval_status: "revoked", role_id: null, scope_limit: [],
+      expected_version: 2, expected_policy_version: 3,
+    });
+    expect(parseApiContract("AdminUserAccessUpdateRequest", revoked).approval_status).toBe("revoked");
+
+    const badApproved = JSON.stringify({
+      approval_status: "approved", role_id: null, scope_limit: [],
+      expected_version: 1, expected_policy_version: 2,
+    });
+    expect(() => parseApiContract("AdminUserAccessUpdateRequest", badApproved)).toThrow(ApiContractError);
+
+    const badRevoked = JSON.stringify({
+      approval_status: "revoked", role_id: roleId, scope_limit: [grant],
+      expected_version: 1, expected_policy_version: 2,
+    });
+    expect(() => parseApiContract("AdminUserAccessUpdateRequest", badRevoked)).toThrow(ApiContractError);
+  });
+
+  it("validates envelopes with expected HTTP statuses", () => {
+    const roleMut = JSON.stringify({
+      schema_version: 1, request_id: reqId,
+      data: { id: roleId, version: 1, policy_version: 2 },
+    });
+    expect(parseApiContract("AdminRoleMutationEnvelope", roleMut, 201).data.version).toBe(1);
+    expect(parseApiContract("AdminRoleMutationEnvelope", roleMut, 200).data.version).toBe(1);
+    expect(() => parseApiContract("AdminRoleMutationEnvelope", roleMut, 403)).toThrow(ApiContractError);
+
+    const userMut = JSON.stringify({
+      schema_version: 1, request_id: reqId,
+      data: { id: reqId, approval_status: "revoked", version: 1, policy_version: 2 },
+    });
+    expect(parseApiContract("AdminUserAccessMutationEnvelope", userMut, 200).data.approval_status).toBe("revoked");
+    expect(() => parseApiContract("AdminUserAccessMutationEnvelope", userMut, 201)).toThrow(ApiContractError);
+
+    const rolePage = JSON.stringify({
+      schema_version: 1, request_id: reqId,
+      data: { items: [], next_cursor: null, policy_version: 1 },
+    });
+    expect(parseApiContract("AdminRolePageEnvelope", rolePage, 200).data.items.length).toBe(0);
+    expect(() => parseApiContract("AdminRolePageEnvelope", rolePage, 201)).toThrow(ApiContractError);
+  });
+});

@@ -514,6 +514,38 @@ class _AppWriteTransaction:
         self.__require(StorageCapability.READ_IDENTITIES)
         return await self.__read_identity("roles", role_id, RoleRecord)
 
+    async def access_management_roles(self) -> tuple[RoleRecord, ...]:
+        """Bound the population examined for role management."""
+        self.__require(StorageCapability.READ_IDENTITIES)
+        try:
+            cursor = (
+                self.__database["roles"]
+                .find({}, session=self.__session)
+                .sort("_id", 1)
+                .limit(1001)
+                .max_time_ms(5000)
+            )
+            rows = await cursor.to_list(length=1001)
+            if len(rows) > 1000:
+                raise ValueError("Role population exceeds review limit")
+            total_bytes = 0
+            roles = []
+            for row in rows:
+                total_bytes += validate_bson_document(row)
+                if total_bytes > MAX_APP_DOCUMENT_BYTES:
+                    raise ValueError("Role population exceeds size limit")
+                role = await self.get_role(UUID(row["_id"]))
+                if role is None:
+                    raise AppWriteConflict("Role population changed.")
+                roles.append(role)
+            return tuple(roles)
+        except AppWriteConflict:
+            self.__poisoned = True
+            raise
+        except Exception:
+            self.__poisoned = True
+            raise AppDatabaseUnavailable("Role population is unavailable.") from None
+
     async def access_management_users(self) -> tuple[UserRecord, ...]:
         """Bound the population examined for assigned roles and administrator safety."""
         self.__require(StorageCapability.READ_IDENTITIES)

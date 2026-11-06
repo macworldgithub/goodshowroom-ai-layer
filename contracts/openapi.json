@@ -294,6 +294,307 @@
         "title": "AdminRevokeRequest",
         "type": "object"
       },
+      "AdminRoleCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "capabilities": {
+            "default": [],
+            "items": {
+              "enum": [
+                "chat",
+                "review_saved_chats",
+                "manage_access",
+                "manage_settings"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "expected_policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Expected Policy Version",
+            "type": "integer"
+          },
+          "grants": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AdminScopeGrant"
+            },
+            "maxItems": 100,
+            "title": "Grants",
+            "type": "array"
+          },
+          "name_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z0-9_-]+$",
+            "title": "Name Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name_key",
+          "active",
+          "capabilities",
+          "grants",
+          "expected_policy_version"
+        ],
+        "title": "AdminRoleCreateRequest",
+        "type": "object"
+      },
+      "AdminRoleItem": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "capabilities": {
+            "items": {
+              "enum": [
+                "chat",
+                "review_saved_chats",
+                "manage_access",
+                "manage_settings"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "grants": {
+            "items": {
+              "$ref": "#/components/schemas/AdminScopeGrant"
+            },
+            "maxItems": 100,
+            "title": "Grants",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "name_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name Key",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name_key",
+          "active",
+          "version",
+          "capabilities",
+          "grants"
+        ],
+        "title": "AdminRoleItem",
+        "type": "object"
+      },
+      "AdminRoleMutationData": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Policy Version",
+            "type": "integer"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "policy_version"
+        ],
+        "title": "AdminRoleMutationData",
+        "type": "object"
+      },
+      "AdminRoleMutationEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminRoleMutationData"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "AdminRoleMutationEnvelope",
+        "type": "object"
+      },
+      "AdminRolePage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminRoleItem"
+            },
+            "maxItems": 100,
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Next Cursor"
+          },
+          "policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Policy Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "policy_version"
+        ],
+        "title": "AdminRolePage",
+        "type": "object"
+      },
+      "AdminRolePageEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminRolePage"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "AdminRolePageEnvelope",
+        "type": "object"
+      },
+      "AdminRoleUpdateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "capabilities": {
+            "default": [],
+            "items": {
+              "enum": [
+                "chat",
+                "review_saved_chats",
+                "manage_access",
+                "manage_settings"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "expected_policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Expected Policy Version",
+            "type": "integer"
+          },
+          "expected_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "grants": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AdminScopeGrant"
+            },
+            "maxItems": 100,
+            "title": "Grants",
+            "type": "array"
+          },
+          "name_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z0-9_-]+$",
+            "title": "Name Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name_key",
+          "active",
+          "capabilities",
+          "grants",
+          "expected_version",
+          "expected_policy_version"
+        ],
+        "title": "AdminRoleUpdateRequest",
+        "type": "object"
+      },
       "AdminScopeGrant": {
         "additionalProperties": false,
         "properties": {
@@ -367,6 +668,277 @@
           "tools"
         ],
         "title": "AdminScopeGrant",
+        "type": "object"
+      },
+      "AdminUserAccessMutationData": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_status": {
+            "enum": [
+              "approved",
+              "revoked"
+            ],
+            "title": "Approval Status",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Policy Version",
+            "type": "integer"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "approval_status",
+          "version",
+          "policy_version"
+        ],
+        "title": "AdminUserAccessMutationData",
+        "type": "object"
+      },
+      "AdminUserAccessMutationEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminUserAccessMutationData"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "AdminUserAccessMutationEnvelope",
+        "type": "object"
+      },
+      "AdminUserAccessUpdateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_status": {
+            "enum": [
+              "approved",
+              "revoked"
+            ],
+            "title": "Approval Status",
+            "type": "string"
+          },
+          "expected_policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Expected Policy Version",
+            "type": "integer"
+          },
+          "expected_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "role_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Role Id"
+          },
+          "scope_limit": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AdminScopeGrant"
+            },
+            "maxItems": 100,
+            "title": "Scope Limit",
+            "type": "array"
+          }
+        },
+        "required": [
+          "approval_status",
+          "role_id",
+          "scope_limit",
+          "expected_version",
+          "expected_policy_version"
+        ],
+        "title": "AdminUserAccessUpdateRequest",
+        "type": "object"
+      },
+      "AdminUserItem": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_status": {
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "revoked"
+            ],
+            "title": "Approval Status",
+            "type": "string"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Display Name"
+          },
+          "email": {
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "role_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Role Id"
+          },
+          "scope_limit": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AdminScopeGrant"
+            },
+            "maxItems": 100,
+            "title": "Scope Limit",
+            "type": "array"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "approval_status",
+          "version",
+          "role_id",
+          "scope_limit"
+        ],
+        "title": "AdminUserItem",
+        "type": "object"
+      },
+      "AdminUserPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUserItem"
+            },
+            "maxItems": 100,
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Next Cursor"
+          },
+          "policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Policy Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "policy_version"
+        ],
+        "title": "AdminUserPage",
+        "type": "object"
+      },
+      "AdminUserPageEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminUserPage"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "AdminUserPageEnvelope",
         "type": "object"
       },
       "AnswerPeriod": {
@@ -1462,7 +2034,7 @@
     "request_bytes": 65536,
     "response_bytes": 1048576
   },
-  "x-contract-stage": "Q-01, own-access, and administrator access schemas; no business-data endpoints",
+  "x-contract-stage": "Q-01, own-access, administrator access, and role/user management schemas; no business-data endpoints",
   "x-error-catalog": {
     "access_denied": {
       "allows_commit_state": false,

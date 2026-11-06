@@ -336,6 +336,135 @@ class AdminRequestPageEnvelope(CreateChatRequest):
     data: AdminRequestPage
 
 
+class AdminRoleCreateRequest(Contract):
+    name_key: str = Field(min_length=1, max_length=100, pattern=r"^[a-z0-9_-]+$")
+    active: bool
+    capabilities: tuple[
+        Literal["chat", "review_saved_chats", "manage_access", "manage_settings"], ...
+    ] = Field(default=(), max_length=4)
+    grants: tuple[AdminScopeGrant, ...] = Field(default=(), max_length=100)
+    expected_policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+    @field_validator("capabilities")
+    @classmethod
+    def unique_capabilities(cls, value):
+        if len(set(value)) != len(value):
+            raise ValueError("Capabilities must be unique")
+        return value
+
+
+class AdminRoleUpdateRequest(Contract):
+    name_key: str = Field(min_length=1, max_length=100, pattern=r"^[a-z0-9_-]+$")
+    active: bool
+    capabilities: tuple[
+        Literal["chat", "review_saved_chats", "manage_access", "manage_settings"], ...
+    ] = Field(default=(), max_length=4)
+    grants: tuple[AdminScopeGrant, ...] = Field(default=(), max_length=100)
+    expected_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+    expected_policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+    @field_validator("capabilities")
+    @classmethod
+    def unique_capabilities(cls, value):
+        if len(set(value)) != len(value):
+            raise ValueError("Capabilities must be unique")
+        return value
+
+
+class AdminUserAccessUpdateRequest(Contract):
+    approval_status: Literal["approved", "revoked"]
+    role_id: UUID | None = None
+    scope_limit: tuple[AdminScopeGrant, ...] = Field(default=(), max_length=100)
+    expected_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+    expected_policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+    _role_id = field_validator("role_id", mode="before")(_canonical_uuid)
+
+    @model_validator(mode="after")
+    def access_update_scope(self):
+        if self.approval_status == "approved":
+            if self.role_id is None or not self.scope_limit:
+                raise ValueError("Approval requires role and scope")
+        elif self.role_id is not None or self.scope_limit:
+            raise ValueError("Revocation cannot specify role or scope")
+        return self
+
+
+class AdminRoleMutationData(Contract):
+    id: UUID
+    version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+    policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+    _id = field_validator("id", mode="before")(_canonical_uuid)
+
+
+class AdminRoleMutationEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: AdminRoleMutationData
+
+
+class AdminUserAccessMutationData(Contract):
+    id: UUID
+    approval_status: Literal["approved", "revoked"]
+    version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+    policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+    _id = field_validator("id", mode="before")(_canonical_uuid)
+
+
+class AdminUserAccessMutationEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: AdminUserAccessMutationData
+
+
+class AdminRoleItem(Contract):
+    id: UUID
+    name_key: str = Field(min_length=1, max_length=100)
+    active: bool
+    version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+    capabilities: tuple[
+        Literal["chat", "review_saved_chats", "manage_access", "manage_settings"], ...
+    ] = Field(max_length=4)
+    grants: tuple[AdminScopeGrant, ...] = Field(max_length=100)
+
+    _id = field_validator("id", mode="before")(_canonical_uuid)
+
+
+class AdminRolePage(Contract):
+    items: list[AdminRoleItem] = Field(max_length=100)
+    next_cursor: str | None = Field(default=None, max_length=4096)
+    policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+
+class AdminRolePageEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: AdminRolePage
+
+
+class AdminUserItem(Contract):
+    id: UUID
+    email: str = Field(min_length=3, max_length=254)
+    display_name: str | None = Field(default=None, max_length=200)
+    approval_status: Literal["pending", "approved", "rejected", "revoked"]
+    version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+    role_id: UUID | None = None
+    scope_limit: tuple[AdminScopeGrant, ...] = Field(default=(), max_length=100)
+
+    _id = field_validator("id", mode="before")(_canonical_uuid)
+    _role_id = field_validator("role_id", mode="before")(_canonical_uuid)
+
+
+class AdminUserPage(Contract):
+    items: list[AdminUserItem] = Field(max_length=100)
+    next_cursor: str | None = Field(default=None, max_length=4096)
+    policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+
+class AdminUserPageEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: AdminUserPage
+
+
 class ApiError(Contract):
     code: ErrorCode
     message: str = Field(min_length=1, max_length=200)
@@ -369,6 +498,13 @@ PUBLIC_MODELS = (
     AdminRevokeRequest,
     AdminMutationEnvelope,
     AdminRequestPageEnvelope,
+    AdminRoleCreateRequest,
+    AdminRoleUpdateRequest,
+    AdminUserAccessUpdateRequest,
+    AdminRoleMutationEnvelope,
+    AdminUserAccessMutationEnvelope,
+    AdminRolePageEnvelope,
+    AdminUserPageEnvelope,
 )
 
 
@@ -382,9 +518,10 @@ def _bounded_tree(value):
             raise ValueError("JSON structure exceeds contract bounds")
         if isinstance(current, dict):
             for key, value in current.items():
-                if key in {"request_id", "session_id"} and (
-                    not isinstance(value, str) or not _UUID.fullmatch(value)
-                ):
+                if (
+                    key in {"request_id", "session_id"}
+                    or (key in {"id", "role_id", "user_id"} and value is not None)
+                ) and (not isinstance(value, str) or not _UUID.fullmatch(value)):
                     raise ValueError("Invalid wire UUID")
                 if (
                     key

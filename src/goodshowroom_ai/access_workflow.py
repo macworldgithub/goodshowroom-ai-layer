@@ -97,6 +97,13 @@ class AccessWorkflow:
             self._db, self._verifier, self._authorization, self._clock, self
         )
 
+    def admin_management_service(self):
+        from goodshowroom_ai.admin_management import AdminManagement
+
+        return AdminManagement(
+            self._db, self._verifier, self._authorization, self._clock
+        )
+
     async def _verify(self, tx, token, now, *, load_login=None):
         return await self._verifier.verify(
             token,

@@ -4,6 +4,49 @@ Purpose: Track verified documentation and implementation progress for this repos
 
 Status: Implementation - 33 tickets Done; TICKET-031 In Review; 24 Backlog
 
+## TICKET-034 review and closure
+
+The user approved closure on 2026-11-06 with the recorded verification and
+operational limits. TICKET-034 is Done. TICKET-031 remains In Review.
+TICKET-035 is next by dependency order.
+
+## TICKET-034 implementation for review
+
+Implemented the five administrator role and user access operations:
+GET /v1/admin/users, GET /v1/admin/roles, POST /v1/admin/roles,
+PATCH /v1/admin/roles/{id}, and PATCH /v1/admin/users/{id}/access.
+All operations enforce signed Bearer token identity verification, admission
+limits, safe unapproved projections (omitting roles and scopes for pending,
+rejected, or revoked users), encrypted cursor pagination, and scope narrowing.
+Mutations require matching expected_version and expected_policy_version
+checks, advance the access control fence, enforce last-active-admin preservation,
+and atomically commit audit logs.
+
+Verification results:
+- 1,010 backend offline pytest tests passed in 91.14s (including 17 new tests in
+  test_admin_management.py, 5 in test_admin_management_storage.py, and 4 in
+  test_api_contracts.py).
+- Backend Ruff lint and format checks passed with 0 errors.
+- OpenAPI schema validation passed (export_contracts --check).
+- 82 frontend unit tests passed.
+- Frontend TypeScript typecheck, ESLint, and contract check passed.
+- Loopback socket test isolated_role_management_http.py passed with real TCP POST/PATCH transport.
+- Standalone test isolated_role_management_mongo.py safely verified daemon absence.
+- git diff --check passed with no whitespace or newline errors.
+
+Recorded limitations:
+- User-access mutations apply to approved users; re-activating revoked users is not supported through this route.
+- User queries enforce a 1,000-user safety limit; collections exceeding this fail safely with AppDatabaseUnavailable.
+- Role hard-deletion is not supported.
+- Browser proxy, UI components, and access options choices are separate tickets.
+
+## TICKET-034 start
+
+The user authorized starting TICKET-034 according to its technical plan.
+The implementation baseline was pinned: 984 backend offline tests passed in
+79.3s and 79 frontend unit tests passed. Implementation is underway for the five
+approved administrator role and user-access management operations.
+
 ## TICKET-033 review and closure
 
 The user approved closure on 2026-11-06 with the recorded verification and

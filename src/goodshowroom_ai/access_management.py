@@ -26,6 +26,9 @@ def _within(grants, allowed):
     )
 
 
+within_scope = _within
+
+
 class AccessManagement:
     def __init__(self, db, authorization, clock):
         self._db, self._authorization, self._clock = db, authorization, clock

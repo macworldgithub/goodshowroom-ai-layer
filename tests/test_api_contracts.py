@@ -17,6 +17,13 @@ from goodshowroom_ai.api_contracts import (
     ERROR_CATALOG,
     MAX_REQUEST_BYTES,
     MAX_SAFE_INTEGER,
+    AdminRoleCreateRequest,
+    AdminRoleMutationEnvelope,
+    AdminRolePageEnvelope,
+    AdminRoleUpdateRequest,
+    AdminUserAccessMutationEnvelope,
+    AdminUserAccessUpdateRequest,
+    AdminUserPageEnvelope,
     ApiError,
     ChatResultEnvelope,
     ChatTurnData,
@@ -420,7 +427,20 @@ def test_openapi_export_is_offline_empty_path_and_public_only():
         "AdminRequestPage",
         "AdminRequestPageEnvelope",
         "AdminRevokeRequest",
+        "AdminRoleCreateRequest",
+        "AdminRoleItem",
+        "AdminRoleMutationData",
+        "AdminRoleMutationEnvelope",
+        "AdminRolePage",
+        "AdminRolePageEnvelope",
+        "AdminRoleUpdateRequest",
         "AdminScopeGrant",
+        "AdminUserAccessMutationData",
+        "AdminUserAccessMutationEnvelope",
+        "AdminUserAccessUpdateRequest",
+        "AdminUserItem",
+        "AdminUserPage",
+        "AdminUserPageEnvelope",
         "AnswerPeriod",
         "AnswerScope",
         "ApiError",
@@ -647,3 +667,231 @@ async def test_failure_after_response_start_raises_only_a_safe_exception():
     assert error.value.__suppress_context__ is True
     assert "private-stream-sentinel" not in rendered_traceback
     assert str(error.value) == "Response transmission failed."
+
+
+def test_admin_role_create_request_valid_and_rejected():
+    grant = {
+        "dataset": "byd-leads-new",
+        "sites": ["site_a"],
+        "record_mode": "all_permitted",
+        "selected_records": [],
+        "fields": ["site", "lead_id"],
+        "metrics": [],
+        "tools": [],
+    }
+    valid_payload = {
+        "name_key": "sales_manager",
+        "active": True,
+        "capabilities": ["chat", "review_saved_chats"],
+        "grants": [grant],
+        "expected_policy_version": 1,
+    }
+    parsed = parse_contract(AdminRoleCreateRequest, json.dumps(valid_payload).encode())
+    assert parsed.name_key == "sales_manager"
+    assert parsed.active is True
+    assert parsed.capabilities == ("chat", "review_saved_chats")
+    assert len(parsed.grants) == 1
+    assert parsed.expected_policy_version == 1
+
+    # Duplicate capabilities rejected
+    dup_caps = dict(valid_payload, capabilities=["chat", "chat"])
+    with pytest.raises(InvalidContract):
+        parse_contract(AdminRoleCreateRequest, json.dumps(dup_caps).encode())
+
+    # Invalid name pattern (uppercase or space)
+    for bad_name in ("Sales_Manager", "sales manager", "sales@manager"):
+        bad = dict(valid_payload, name_key=bad_name)
+        with pytest.raises(InvalidContract):
+            parse_contract(AdminRoleCreateRequest, json.dumps(bad).encode())
+
+    # Negative expected_policy_version
+    neg_ver = dict(valid_payload, expected_policy_version=-1)
+    with pytest.raises(InvalidContract):
+        parse_contract(AdminRoleCreateRequest, json.dumps(neg_ver).encode())
+
+
+def test_admin_role_update_request_valid_and_rejected():
+    valid_payload = {
+        "name_key": "sales_rep",
+        "active": False,
+        "capabilities": ["chat"],
+        "grants": [],
+        "expected_version": 2,
+        "expected_policy_version": 5,
+    }
+    parsed = parse_contract(AdminRoleUpdateRequest, json.dumps(valid_payload).encode())
+    assert parsed.name_key == "sales_rep"
+    assert parsed.active is False
+    assert parsed.expected_version == 2
+    assert parsed.expected_policy_version == 5
+
+    # Negative expected_version
+    neg_ver = dict(valid_payload, expected_version=-1)
+    with pytest.raises(InvalidContract):
+        parse_contract(AdminRoleUpdateRequest, json.dumps(neg_ver).encode())
+
+
+def test_admin_user_access_update_request_valid_and_rejected():
+    grant = {
+        "dataset": "byd-leads-new",
+        "sites": ["site_a"],
+        "record_mode": "all_permitted",
+        "selected_records": [],
+        "fields": ["site"],
+        "metrics": [],
+        "tools": [],
+    }
+    role_uuid = "3f829a28-98e3-462f-87d3-6593a1c6a256"
+
+    # Valid approved
+    approved_payload = {
+        "approval_status": "approved",
+        "role_id": role_uuid,
+        "scope_limit": [grant],
+        "expected_version": 1,
+        "expected_policy_version": 2,
+    }
+    parsed = parse_contract(
+        AdminUserAccessUpdateRequest, json.dumps(approved_payload).encode()
+    )
+    assert parsed.approval_status == "approved"
+    assert str(parsed.role_id) == role_uuid
+    assert len(parsed.scope_limit) == 1
+
+    # Valid revoked
+    revoked_payload = {
+        "approval_status": "revoked",
+        "role_id": None,
+        "scope_limit": [],
+        "expected_version": 2,
+        "expected_policy_version": 3,
+    }
+    parsed_rev = parse_contract(
+        AdminUserAccessUpdateRequest, json.dumps(revoked_payload).encode()
+    )
+    assert parsed_rev.approval_status == "revoked"
+    assert parsed_rev.role_id is None
+    assert parsed_rev.scope_limit == ()
+
+    # Approved without role_id rejected
+    with pytest.raises(InvalidContract):
+        parse_contract(
+            AdminUserAccessUpdateRequest,
+            json.dumps(dict(approved_payload, role_id=None)).encode(),
+        )
+
+    # Approved without scope_limit rejected
+    with pytest.raises(InvalidContract):
+        parse_contract(
+            AdminUserAccessUpdateRequest,
+            json.dumps(dict(approved_payload, scope_limit=[])).encode(),
+        )
+
+    # Revoked with role_id rejected
+    with pytest.raises(InvalidContract):
+        parse_contract(
+            AdminUserAccessUpdateRequest,
+            json.dumps(dict(revoked_payload, role_id=role_uuid)).encode(),
+        )
+
+    # Revoked with scope_limit rejected
+    with pytest.raises(InvalidContract):
+        parse_contract(
+            AdminUserAccessUpdateRequest,
+            json.dumps(dict(revoked_payload, scope_limit=[grant])).encode(),
+        )
+
+    # Invalid status rejected
+    with pytest.raises(InvalidContract):
+        parse_contract(
+            AdminUserAccessUpdateRequest,
+            json.dumps(dict(approved_payload, approval_status="pending")).encode(),
+        )
+
+
+def test_admin_role_and_user_pages_and_mutations_round_trip():
+    req_id = "7ed11ca9-26b2-44d3-96f4-351258801ed1"
+    role_id = "3f829a28-98e3-462f-87d3-6593a1c6a256"
+
+    # Role mutation envelope
+    role_mut = {
+        "request_id": req_id,
+        "schema_version": 1,
+        "data": {
+            "id": role_id,
+            "version": 1,
+            "policy_version": 2,
+        },
+    }
+    parsed_mut = parse_contract(
+        AdminRoleMutationEnvelope, json.dumps(role_mut).encode()
+    )
+    assert str(parsed_mut.data.id) == role_id
+    assert parsed_mut.data.version == 1
+
+    # User access mutation envelope
+    user_mut = {
+        "request_id": req_id,
+        "schema_version": 1,
+        "data": {
+            "id": "4e748442-544d-4fef-9679-07b0ad62999c",
+            "approval_status": "revoked",
+            "version": 3,
+            "policy_version": 4,
+        },
+    }
+    parsed_user_mut = parse_contract(
+        AdminUserAccessMutationEnvelope, json.dumps(user_mut).encode()
+    )
+    assert parsed_user_mut.data.approval_status == "revoked"
+
+    # Role page envelope
+    role_page = {
+        "request_id": req_id,
+        "schema_version": 1,
+        "data": {
+            "items": [
+                {
+                    "id": role_id,
+                    "name_key": "analyst",
+                    "active": True,
+                    "version": 0,
+                    "capabilities": ["chat"],
+                    "grants": [],
+                }
+            ],
+            "next_cursor": None,
+            "policy_version": 2,
+        },
+    }
+    parsed_role_page = parse_contract(
+        AdminRolePageEnvelope, json.dumps(role_page).encode()
+    )
+    assert len(parsed_role_page.data.items) == 1
+    assert parsed_role_page.data.items[0].name_key == "analyst"
+
+    # User page envelope
+    user_page = {
+        "request_id": req_id,
+        "schema_version": 1,
+        "data": {
+            "items": [
+                {
+                    "id": "4e748442-544d-4fef-9679-07b0ad62999c",
+                    "email": "user@example.test",
+                    "display_name": "Test User",
+                    "approval_status": "approved",
+                    "version": 1,
+                    "role_id": role_id,
+                    "scope_limit": [],
+                }
+            ],
+            "next_cursor": None,
+            "policy_version": 2,
+        },
+    }
+    parsed_user_page = parse_contract(
+        AdminUserPageEnvelope, json.dumps(user_page).encode()
+    )
+    assert len(parsed_user_page.data.items) == 1
+    assert parsed_user_page.data.items[0].email == "user@example.test"

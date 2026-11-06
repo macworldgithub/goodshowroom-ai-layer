@@ -7,7 +7,9 @@ import type { components } from "./generated/api-types";
 type Schemas = components["schemas"];
 type ContractMap = Pick<Schemas,
   "CreateChatRequest" | "TurnRequest" | "ChatResultEnvelope" | "ErrorEnvelope" | "OwnAccessEnvelope" | "OwnRequestEnvelope" |
-  "AdminDecisionRequest" | "AdminPreapprovalRequest" | "AdminRevokeRequest" | "AdminMutationEnvelope" | "AdminRequestPageEnvelope"
+  "AdminDecisionRequest" | "AdminPreapprovalRequest" | "AdminRevokeRequest" | "AdminMutationEnvelope" | "AdminRequestPageEnvelope" |
+  "AdminRoleCreateRequest" | "AdminRoleUpdateRequest" | "AdminUserAccessUpdateRequest" | "AdminRoleMutationEnvelope" | "AdminUserAccessMutationEnvelope" |
+  "AdminRolePageEnvelope" | "AdminUserPageEnvelope"
 >;
 export type ContractName = keyof ContractMap;
 export type { components } from "./generated/api-types";
@@ -134,7 +136,7 @@ function responseValid(response: Schemas["StructuredResponse"]): void {
 export function parseApiContract<K extends ContractName>(name: K, raw: string, httpStatus?: number): ContractMap[K] {
   try {
     if (!Object.hasOwn(validators, name)) invalid();
-    const requestNames: ContractName[] = ["TurnRequest", "CreateChatRequest", "AdminDecisionRequest", "AdminPreapprovalRequest", "AdminRevokeRequest"];
+    const requestNames: ContractName[] = ["TurnRequest", "CreateChatRequest", "AdminDecisionRequest", "AdminPreapprovalRequest", "AdminRevokeRequest", "AdminRoleCreateRequest", "AdminRoleUpdateRequest", "AdminUserAccessUpdateRequest"];
     const maximum = requestNames.includes(name) ? meta.limits.request_bytes : meta.limits.response_bytes;
     const decoded = decode(raw, maximum);
     if (!validators[name](decoded)) invalid();
@@ -159,6 +161,16 @@ export function parseApiContract<K extends ContractName>(name: K, raw: string, h
     } else if (name === "AdminMutationEnvelope") {
       if (httpStatus !== undefined && httpStatus !== 200 && httpStatus !== 201) invalid();
     } else if (name === "AdminRequestPageEnvelope") {
+      if (httpStatus !== undefined && httpStatus !== 200) invalid();
+    } else if (name === "AdminRoleCreateRequest" || name === "AdminRoleUpdateRequest") {
+      const data = decoded as Schemas["AdminRoleCreateRequest"] | Schemas["AdminRoleUpdateRequest"];
+      if (new Set(data.capabilities).size !== data.capabilities.length) invalid();
+    } else if (name === "AdminUserAccessUpdateRequest") {
+      const data = decoded as Schemas["AdminUserAccessUpdateRequest"];
+      if (data.approval_status === "approved" ? data.role_id === null || !data.scope_limit.length : data.role_id !== null || data.scope_limit.length !== 0) invalid();
+    } else if (name === "AdminRoleMutationEnvelope") {
+      if (httpStatus !== undefined && httpStatus !== 200 && httpStatus !== 201) invalid();
+    } else if (name === "AdminUserAccessMutationEnvelope" || name === "AdminRolePageEnvelope" || name === "AdminUserPageEnvelope") {
       if (httpStatus !== undefined && httpStatus !== 200) invalid();
     } else if (name === "OwnRequestEnvelope") {
       if (httpStatus !== undefined && httpStatus !== 200 && httpStatus !== 201) invalid();

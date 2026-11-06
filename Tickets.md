@@ -2,9 +2,9 @@
 
 Tickets.md is the single source of truth for project work. Do not create real feature tickets until the PRD and scope have been reviewed. Every planned implementation task must have a unique ticket ID and appear here.
 
-Status: Approved Register - 33 Done; TICKET-031 In Review; 24 Backlog
+Status: Approved Register - 32 Done; TICKET-031 In Review; TICKET-034 In Review; 24 Backlog
 Updated: 2026-11-06
-Authorization: The user approved closure of TICKET-033.
+Authorization: The user authorized TICKET-034 implementation according to its technical plan.
 
 ## Review and Execution Rules
 
@@ -1868,7 +1868,7 @@ production deployment. The user accepted these limits when closing the ticket.
 
 - Type: BACKEND
 - Priority: High
-- Status: Backlog
+- Status: Done
 - Milestone: Access APIs
 - Requirement Reference: [User Flows](docs/03-USER-FLOWS.md); [API Contracts](docs/07-API-CONTRACTS.md); [Security](docs/09-SECURITY.md)
 - Dependencies: TICKET-026, TICKET-030, TICKET-057
@@ -1884,9 +1884,9 @@ Bounded users/roles lists and role create/edit/deactivate plus user access edits
 
 #### Acceptance Criteria
 
-- [ ] Typed explicit grants, current management authority and both required version checks protect mutations.
-- [ ] Cross-scope selections, self-escalation and concurrent last-admin loss are rejected without partial changes.
-- [ ] Responses expose only authorized management fields and safe errors; audit failures deny required mutations.
+- [x] Typed explicit grants, current management authority and both required version checks protect mutations.
+- [x] Cross-scope selections, self-escalation and concurrent last-admin loss are rejected without partial changes.
+- [x] Responses expose only authorized management fields and safe errors; audit failures deny required mutations.
 
 #### Verification
 
@@ -1898,7 +1898,43 @@ Administration remains separate from operational data grants; no role hard-delet
 
 #### Completion Evidence
 
-Not started. No implementation or verification results. Record actual files, commands/results, limitations and required review before Done.
+The user approved closure on 2026-11-06 with the recorded verification and operational limits. TICKET-034 is Done.
+
+Implemented the five administrator routes (GET /v1/admin/users, GET /v1/admin/roles, POST /v1/admin/roles, PATCH /v1/admin/roles/{id}, PATCH /v1/admin/users/{id}/access) with signed bearer verification, rate limit admission, encrypted cursor pagination, safe unapproved projection, scope narrowing, last-admin protection, transaction fence advancement, and atomic audit logging.
+
+Files modified/added:
+- Backend implementation: src/goodshowroom_ai/admin_management.py, src/goodshowroom_ai/admin_management_routes.py, src/goodshowroom_ai/storage/mongo.py, src/goodshowroom_ai/api_contracts.py, src/goodshowroom_ai/export_contracts.py, src/goodshowroom_ai/access_management.py, src/goodshowroom_ai/access_workflow.py, src/goodshowroom_ai/api_http.py, src/goodshowroom_ai/app.py
+- Frontend contracts and validators: contracts/openapi.json,
+rontend/scripts/generate-contracts.mjs,
+rontend/src/lib/api-contracts.ts,
+rontend/src/lib/generated/api-types.ts,
+rontend/src/lib/generated/validators.cjs,
+rontend/src/lib/generated/validators.d.cts
+- Tests: 	ests/test_admin_management.py, 	ests/test_admin_management_storage.py, 	ests/test_api_contracts.py, 	ests/test_access_request_storage.py, 	ests/workflow_fake.py, 	ests/isolated_role_management_http.py, 	ests/isolated_role_management_mongo.py,
+rontend/src/lib/api-contracts.test.tsx
+
+Verification results:
+- .venv/Scripts/python.exe -m pytest -q -> 1010 passed in 91.14s
+- .venv/Scripts/python.exe -m goodshowroom_ai.export_contracts --check -> pass, exit code 0
+- .venv/Scripts/python.exe -m ruff check --no-cache . -> pass, exit code 0
+- .venv/Scripts/python.exe -m ruff format --no-cache --check . -> pass, exit code 0
+-
+pm run test:unit -> 82 passed in frontend
+-
+pm run typecheck -> pass, exit code 0
+-
+pm run lint -> pass, exit code 0
+-
+pm run contracts:check -> pass, exit code 0
+- .venv/Scripts/python.exe tests/isolated_role_management_http.py -> pass, exit code 0
+- .venv/Scripts/python.exe tests/isolated_role_management_mongo.py -> pass, exit code 0
+- git diff --check -> pass, exit code 0
+
+Limitations:
+- User-access edits support approved users; re-activating revoked users is not supported through this endpoint.
+- Administrator user queries enforce a 1,000-user safety limit; collections exceeding this fail safely with AppDatabaseUnavailable.
+- Role hard-deletion is not supported.
+- Browser proxy, UI components, and access options are separate tickets.
 
 ### TICKET-035: Expose access choices, mappings and settings APIs
 

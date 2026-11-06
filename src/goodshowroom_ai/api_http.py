@@ -30,6 +30,7 @@ from goodshowroom_ai.identity import IdentityDenied
 from goodshowroom_ai.operational import SourceUnavailable
 from goodshowroom_ai.responses import ResponseInvalid
 from goodshowroom_ai.storage.mongo import (
+    AppCommitOutcomeUnknown,
     AppDatabaseUnavailable,
     AppWriteConflict,
     AuthorizationDenied,
@@ -221,6 +222,8 @@ def install_error_handlers(app: FastAPI) -> None:
             code = ErrorCode.ACCESS_DENIED
         elif isinstance(error, SourceUnavailable):
             code = ErrorCode.SOURCE_UNAVAILABLE
+        elif isinstance(error, AppCommitOutcomeUnknown):
+            code, commit_state = ErrorCode.PERSISTENCE_FAILED, "unknown"
         elif isinstance(error, SavedChatCleanupPending):
             code = ErrorCode.CLEANUP_PENDING
         elif isinstance(error, AppDatabaseUnavailable):
@@ -258,6 +261,7 @@ def install_error_handlers(app: FastAPI) -> None:
         AuthorizationDenied,
         SourceUnavailable,
         SavedChatCleanupPending,
+        AppCommitOutcomeUnknown,
         AppDatabaseUnavailable,
         AppWriteConflict,
         ResponseInvalid,

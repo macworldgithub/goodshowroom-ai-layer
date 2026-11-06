@@ -11,6 +11,13 @@ from goodshowroom_ai.admin_access_routes import (
     preapprove,
     revoke_preapproval,
 )
+from goodshowroom_ai.admin_management_routes import (
+    create_admin_role,
+    list_admin_roles,
+    list_admin_users,
+    update_admin_role,
+    update_admin_user_access,
+)
 from goodshowroom_ai.api_http import install_error_handlers
 from goodshowroom_ai.config import Settings
 from goodshowroom_ai.cursors import CursorCodec
@@ -33,6 +40,7 @@ def create_app(
     login_lifecycle=None,
     own_access=None,
     admin_access=None,
+    admin_management=None,
 ) -> FastAPI:
     """Build the app; Mongo connects only when a caller explicitly opts in."""
     configuration = settings if settings is not None else Settings()
@@ -64,6 +72,9 @@ def create_app(
                 application.state.admin_access = (
                     application.state.login_workflow.admin_access_service()
                 )
+                application.state.admin_management = (
+                    application.state.login_workflow.admin_management_service()
+                )
             if active_memory is not None:
                 await active_memory.start()
             yield
@@ -87,6 +98,7 @@ def create_app(
     app.state.login_lifecycle = login_lifecycle
     app.state.own_access = own_access
     app.state.admin_access = admin_access
+    app.state.admin_management = admin_management
     app.state.execution_limits = DEFAULT_LIMITS
     app.state.admission = AdmissionController(limits=DEFAULT_LIMITS)
     app.state.cursor_codec = (
@@ -109,5 +121,14 @@ def create_app(
         "/v1/admin/preapprovals/{request_id}/revoke",
         revoke_preapproval,
         methods=["POST"],
+    )
+    app.add_api_route("/v1/admin/users", list_admin_users, methods=["GET"])
+    app.add_api_route("/v1/admin/roles", list_admin_roles, methods=["GET"])
+    app.add_api_route("/v1/admin/roles", create_admin_role, methods=["POST"])
+    app.add_api_route("/v1/admin/roles/{role_id}", update_admin_role, methods=["PATCH"])
+    app.add_api_route(
+        "/v1/admin/users/{user_id}/access",
+        update_admin_user_access,
+        methods=["PATCH"],
     )
     return app

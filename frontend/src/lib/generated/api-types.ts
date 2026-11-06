@@ -117,6 +117,118 @@ export interface components {
             /** Expected Policy Version */
             expected_policy_version: number;
         };
+        /** AdminRoleCreateRequest */
+        AdminRoleCreateRequest: {
+            /** Active */
+            active: boolean;
+            /**
+             * Capabilities
+             * @default []
+             */
+            capabilities: ("chat" | "review_saved_chats" | "manage_access" | "manage_settings")[];
+            /** Expected Policy Version */
+            expected_policy_version: number;
+            /**
+             * Grants
+             * @default []
+             */
+            grants: components["schemas"]["AdminScopeGrant"][];
+            /** Name Key */
+            name_key: string;
+        };
+        /** AdminRoleItem */
+        AdminRoleItem: {
+            /** Active */
+            active: boolean;
+            /** Capabilities */
+            capabilities: ("chat" | "review_saved_chats" | "manage_access" | "manage_settings")[];
+            /** Grants */
+            grants: components["schemas"]["AdminScopeGrant"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name Key */
+            name_key: string;
+            /** Version */
+            version: number;
+        };
+        /** AdminRoleMutationData */
+        AdminRoleMutationData: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Policy Version */
+            policy_version: number;
+            /** Version */
+            version: number;
+        };
+        /** AdminRoleMutationEnvelope */
+        AdminRoleMutationEnvelope: {
+            data: components["schemas"]["AdminRoleMutationData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** AdminRolePage */
+        AdminRolePage: {
+            /** Items */
+            items: components["schemas"]["AdminRoleItem"][];
+            /**
+             * Next Cursor
+             * @default null
+             */
+            next_cursor: string | null;
+            /** Policy Version */
+            policy_version: number;
+        };
+        /** AdminRolePageEnvelope */
+        AdminRolePageEnvelope: {
+            data: components["schemas"]["AdminRolePage"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** AdminRoleUpdateRequest */
+        AdminRoleUpdateRequest: {
+            /** Active */
+            active: boolean;
+            /**
+             * Capabilities
+             * @default []
+             */
+            capabilities: ("chat" | "review_saved_chats" | "manage_access" | "manage_settings")[];
+            /** Expected Policy Version */
+            expected_policy_version: number;
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Grants
+             * @default []
+             */
+            grants: components["schemas"]["AdminScopeGrant"][];
+            /** Name Key */
+            name_key: string;
+        };
         /** AdminScopeGrant */
         AdminScopeGrant: {
             /**
@@ -139,6 +251,119 @@ export interface components {
             sites: string[];
             /** Tools */
             tools: string[];
+        };
+        /** AdminUserAccessMutationData */
+        AdminUserAccessMutationData: {
+            /**
+             * Approval Status
+             * @enum {string}
+             */
+            approval_status: "approved" | "revoked";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Policy Version */
+            policy_version: number;
+            /** Version */
+            version: number;
+        };
+        /** AdminUserAccessMutationEnvelope */
+        AdminUserAccessMutationEnvelope: {
+            data: components["schemas"]["AdminUserAccessMutationData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** AdminUserAccessUpdateRequest */
+        AdminUserAccessUpdateRequest: {
+            /**
+             * Approval Status
+             * @enum {string}
+             */
+            approval_status: "approved" | "revoked";
+            /** Expected Policy Version */
+            expected_policy_version: number;
+            /** Expected Version */
+            expected_version: number;
+            /**
+             * Role Id
+             * @default null
+             */
+            role_id: string | null;
+            /**
+             * Scope Limit
+             * @default []
+             */
+            scope_limit: components["schemas"]["AdminScopeGrant"][];
+        };
+        /** AdminUserItem */
+        AdminUserItem: {
+            /**
+             * Approval Status
+             * @enum {string}
+             */
+            approval_status: "pending" | "approved" | "rejected" | "revoked";
+            /**
+             * Display Name
+             * @default null
+             */
+            display_name: string | null;
+            /** Email */
+            email: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Role Id
+             * @default null
+             */
+            role_id: string | null;
+            /**
+             * Scope Limit
+             * @default []
+             */
+            scope_limit: components["schemas"]["AdminScopeGrant"][];
+            /** Version */
+            version: number;
+        };
+        /** AdminUserPage */
+        AdminUserPage: {
+            /** Items */
+            items: components["schemas"]["AdminUserItem"][];
+            /**
+             * Next Cursor
+             * @default null
+             */
+            next_cursor: string | null;
+            /** Policy Version */
+            policy_version: number;
+        };
+        /** AdminUserPageEnvelope */
+        AdminUserPageEnvelope: {
+            data: components["schemas"]["AdminUserPage"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /** AnswerPeriod */
         AnswerPeriod: {
