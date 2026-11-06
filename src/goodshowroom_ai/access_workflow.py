@@ -90,6 +90,13 @@ class AccessWorkflow:
 
         return OwnAccessService(self._db, self._verifier, admission, self._clock)
 
+    def admin_access_service(self):
+        from goodshowroom_ai.admin_access import AdminAccess
+
+        return AdminAccess(
+            self._db, self._verifier, self._authorization, self._clock, self
+        )
+
     async def _verify(self, tx, token, now, *, load_login=None):
         return await self._verifier.verify(
             token,

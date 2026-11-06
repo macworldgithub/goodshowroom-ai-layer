@@ -2,9 +2,9 @@
 
 Tickets.md is the single source of truth for project work. Do not create real feature tickets until the PRD and scope have been reviewed. Every planned implementation task must have a unique ticket ID and appear here.
 
-Status: Approved Register - TICKET-031 In Review
-Updated: 2026-10-27
-Authorization: User approved TICKET-014 and TICKET-025 with recorded limits and authorized TICKET-016 and TICKET-026 on 2026-10-27. Thirty tickets are Done; TICKET-031 is In Review; 27 remain Backlog. The user approved TICKET-016 and TICKET-026 with their recorded verification limits on 2026-10-28.
+Status: Approved Register - 33 Done; TICKET-031 In Review; 24 Backlog
+Updated: 2026-11-06
+Authorization: The user approved closure of TICKET-033.
 
 ## Review and Execution Rules
 
@@ -1731,7 +1731,7 @@ NextAuth V4 and the backend exchange, renew and revoke routes are connected thro
 
 - Type: BACKEND
 - Priority: High
-- Status: In Review
+- Status: Done
 - Milestone: Access APIs
 - Requirement Reference: [User Flows](docs/03-USER-FLOWS.md); [API Contracts](docs/07-API-CONTRACTS.md); [Security](docs/09-SECURITY.md)
 - Dependencies: TICKET-023, TICKET-025, TICKET-030, TICKET-057
@@ -1761,6 +1761,10 @@ No email/body field selects another user; Google authentication alone does not g
 
 #### Completion Evidence
 
+Review update: The user approved closure on 2026-11-05 after the requirements
+and security review. The final recorded offline checks passed 975 backend tests
+and 77 frontend tests. The limitations below remain applicable.
+
 Implemented for review: `GET /v1/me` and `POST /v1/access-requests` verify
 server assertions and current login bindings. Pending, rejected and revoked
 statuses have no role or scope choices. Approved status uses the current active
@@ -1787,7 +1791,7 @@ Current limits: the rate limiter is process-local and resets on restart. The
 Next.js browser proxy and request screens are separate tickets. No source
 business data, real administrator grant, production deployment or live Google
 request was used. Real administrator site IDs remain open. TICKET-031 remains
-In Review. TICKET-032 awaits required review before Done.
+In Review. TICKET-032 is Done after user review; its stated limits remain.
 
 Earlier start (superseded by the implementation evidence above): reviewed the
 approved API contract, dependency statuses, current login
@@ -1806,7 +1810,7 @@ existing work and keep TICKET-031 In Review.
 
 - Type: BACKEND
 - Priority: High
-- Status: Backlog
+- Status: Done
 - Milestone: Access APIs
 - Requirement Reference: [User Flows](docs/03-USER-FLOWS.md); [API Contracts](docs/07-API-CONTRACTS.md); [Security](docs/09-SECURITY.md)
 - Dependencies: TICKET-025, TICKET-026, TICKET-030, TICKET-057
@@ -1822,9 +1826,9 @@ List/review requests and create/revoke preapprovals through existing transaction
 
 #### Acceptance Criteria
 
-- [ ] Every route requires current management capability; selectors never bypass field/record restrictions.
-- [ ] Approve/reject/preapprove/revoke return safe validated results; required policy versions and scope validation are enforced.
-- [ ] Stale edits, duplicate races and required-audit failures cause no partial state or secret/identity leakage.
+- [x] Every route requires current management capability; selectors never bypass field/record restrictions.
+- [x] Approve/reject/preapprove/revoke return safe validated results; required policy versions and scope validation are enforced.
+- [x] Stale edits, duplicate races and required-audit failures cause no partial state or secret/identity leakage.
 
 #### Verification
 
@@ -1836,7 +1840,29 @@ No service logic duplicated in routes; no unreviewed resubmission behavior.
 
 #### Completion Evidence
 
-Not started. No implementation or verification results. Record actual files, commands/results, limitations and required review before Done.
+The user approved closure on 2026-11-06 with the limits recorded below.
+
+Implemented for review: the four administrator access-request and preapproval
+routes verify signed method/path/query/body and current management permission.
+They use typed input, scoped grants, caller- and policy-bound encrypted cursors,
+separate process-local admission, existing fenced writes, and required audit.
+Selected records use protected handles; issuance for browser access options is a
+later ticket. A duplicate preapproval with a different expiry now conflicts.
+
+Offline verification: 984 backend tests and 79 frontend unit tests passed. Ruff,
+frontend typecheck/lint, and backend/frontend contract checks passed. New route
+tests cover signed body changes, permission denial, stale policy, paging,
+selected-handle binding, request limits, approval, rejection, preapproval,
+revocation, audit failure and duplicate expiry conflict. The isolated MongoDB
+test passed real administrator preapproval audit rollback and two simultaneous
+duplicate submissions with one record and one audit. Synthetic records were
+removed. The first test target was nonempty; it was left unchanged. A separate
+temporary loopback replica set was used and stopped. No production data was used.
+
+Limits: rate limiting is process-local. The browser proxy, UI, and public
+access-options/handle issuance are separate tickets. The isolated test used one
+local MongoDB version and ASGI transport, not independent HTTP processes or a
+production deployment. The user accepted these limits when closing the ticket.
 
 ### TICKET-034: Expose role and employee-access APIs
 

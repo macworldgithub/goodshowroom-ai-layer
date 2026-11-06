@@ -31,20 +31,28 @@ class AdmissionController:
         self._user_turns: dict[UUID, deque[float]] = {}
         self._next_sweep = 0.0
         self._access_requests: dict[UUID, deque[float]] = {}
+        self._admin_requests: dict[UUID, deque[float]] = {}
 
     async def admit_access_request(self, user_id: UUID):
         """Rate-limit an already authenticated user before access mutations."""
+        await self._admit_access_window(user_id, self._access_requests)
+
+    async def admit_admin_request(self, user_id: UUID):
+        """Limit administrator operations separately from own-access requests."""
+        await self._admit_access_window(user_id, self._admin_requests)
+
+    async def _admit_access_window(self, user_id, windows):
         if type(user_id) is not UUID:
             raise ApiProblem(ErrorCode.INVALID_REQUEST)
         async with self._guard:
             now = self._clock()
             cutoff = now - self._window
-            for known_user, timestamps in tuple(self._access_requests.items()):
+            for known_user, timestamps in tuple(windows.items()):
                 while timestamps and timestamps[0] <= cutoff:
                     timestamps.popleft()
                 if not timestamps:
-                    self._access_requests.pop(known_user, None)
-            timestamps = self._access_requests.setdefault(user_id, deque())
+                    windows.pop(known_user, None)
+            timestamps = windows.setdefault(user_id, deque())
             if len(timestamps) >= self._limits.access_requests_per_user_per_minute:
                 raise ApiProblem(ErrorCode.RATE_LIMITED)
             timestamps.append(now)

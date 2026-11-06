@@ -5,6 +5,7 @@ script does not change pytest's offline guard or accept a caller-supplied URI.
 """
 
 import asyncio
+import json
 from datetime import UTC, datetime, timedelta
 import os
 from pathlib import Path
@@ -15,10 +16,18 @@ from unittest.mock import AsyncMock, patch
 from uuid import UUID, uuid4
 
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.fernet import Fernet
 from httpx import ASGITransport, AsyncClient
 from pymongo import AsyncMongoClient
 
 from goodshowroom_ai.access_workflow import AccessWorkflow
+from goodshowroom_ai.admin_access import (
+    AdminAccess,
+    RecordHandlePosition,
+    _RecordHandlePayload,
+)
+from goodshowroom_ai.authorization import AuthorizationService
+from goodshowroom_ai.cursors import CursorCodec
 from goodshowroom_ai.app import create_app
 from goodshowroom_ai.config import Settings
 from goodshowroom_ai.identity import (
@@ -448,6 +457,125 @@ async def main():
             print(
                 "PASS: real MongoDB own-status, audit rollback, concurrent duplicate recovery"
             )
+
+            # TICKET-033: use the still-active synthetic administrator login.
+            async def valid_admin(principal):
+                policy = await db.load_authorization_policy(principal)
+                return (
+                    policy.login.generation == principal.generation
+                    and policy.login.valid(now)
+                )
+
+            admin_auth = AuthorizationService(
+                load_policy=db.load_authorization_policy,
+                check_identity=valid_admin,
+                clock=lambda: now,
+            )
+            admin_workflow = AccessWorkflow(
+                db,
+                verifier,
+                admin_auth,
+                lambda: now,
+                "admin@example.test",
+                role.id,
+                (selected_grant(),),
+            )
+            admin_service = AdminAccess(
+                db, verifier, admin_auth, lambda: now, admin_workflow
+            )
+            admin_app = create_app(
+                Settings(_env_file=None, app_env="test"), admin_access=admin_service
+            )
+            admin_app.state.cursor_codec = CursorCodec(
+                Fernet.generate_key(), clock=lambda: now
+            )
+            policy_version = (
+                await raw.app_settings.find_one({"_id": "access_control"})
+            )["policy_version"]
+            scope = selected_grant().model_dump(mode="json")
+            position = RecordHandlePosition(
+                actor=UUID(data["user_id"]),
+                policy_version=policy_version,
+                source=selected_grant().selected_records[0],
+            )
+            scope["selected_records"] = [
+                admin_app.state.cursor_codec._encode_chat_position(
+                    position, _RecordHandlePayload
+                )
+            ]
+            body = json.dumps(
+                {
+                    "email": "ticket033-synthetic@example.test",
+                    "role_id": str(role.id),
+                    "scope_limit": [scope],
+                    "expires_at": None,
+                    "expected_policy_version": policy_version,
+                },
+                separators=(",", ":"),
+            ).encode()
+            admin_path = "/v1/admin/preapprovals"
+            admin_token = _mint(
+                key,
+                _request_claims(
+                    sub=data["user_id"],
+                    login_session_id=concurrent_id,
+                    generation=0,
+                    method="POST",
+                    path=admin_path,
+                    digest=operation_digest("POST", admin_path, body=body),
+                    iat=stamp,
+                    nbf=stamp,
+                    exp=stamp + 120,
+                ),
+            )
+            async with AsyncClient(
+                transport=ASGITransport(app=admin_app), base_url="http://test.invalid"
+            ) as admin_http:
+                headers = {"authorization": "Bearer " + admin_token}
+                audit_filter = {
+                    "actor_id": data["user_id"],
+                    "action": "access_control_change",
+                }
+                audit_count = await raw.audit_events.count_documents(audit_filter)
+                with patch.object(
+                    _AppWriteTransaction, "append_required_audit", fail_audit
+                ):
+                    failed = await admin_http.post(
+                        admin_path, content=body, headers=headers
+                    )
+                assert failed.status_code == 503, failed.status_code
+                assert (
+                    await raw.audit_events.count_documents(audit_filter) == audit_count
+                )
+                assert (
+                    await raw.access_requests.count_documents(
+                        {"email_key": "ticket033-synthetic@example.test"}
+                    )
+                    == 0
+                )
+                outcomes = await asyncio.gather(
+                    *(
+                        admin_http.post(admin_path, content=body, headers=headers)
+                        for _ in range(2)
+                    )
+                )
+                codes = sorted(item.status_code for item in outcomes)
+                assert codes.count(201) == 1 and all(
+                    code in (201, 409, 503) for code in codes
+                ), codes
+                assert (
+                    await raw.audit_events.count_documents(audit_filter)
+                    == audit_count + 1
+                )
+                assert (
+                    await raw.access_requests.count_documents(
+                        {"email_key": "ticket033-synthetic@example.test"}
+                    )
+                    == 1
+                )
+            print(
+                "PASS: real MongoDB administrator preapproval audit rollback and concurrent duplicate safety"
+            )
             # Incident recovery has no HTTP route. Use the trusted operator path.
             # An audit failure must roll back the cutoff and keep the process stopped.
             settings_before = await raw.app_settings.find_one({"_id": "access_control"})
@@ -666,6 +794,9 @@ async def main():
                         "provider_account_id": "synthetic-google-subject",
                     }
                 )
+            await raw.access_requests.delete_many(
+                {"kind": "preapproval", "email_key": "ticket033-synthetic@example.test"}
+            )
             pending_user = await raw.users.find_one(
                 {
                     "provider_account_id": "synthetic-pending-subject",

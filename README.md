@@ -1071,11 +1071,39 @@ alone do not add a browser page. Test locally with
 The tests use synthetic identities. The separate isolated MongoDB check uses the
 approved loopback test instance and removes only its own synthetic records.
 
+## Administrator access-request routes
+
+TICKET-033 adds `GET /v1/admin/access-requests`,
+`POST /v1/admin/access-requests/{id}/decision`, `POST /v1/admin/preapprovals`,
+and `POST /v1/admin/preapprovals/{id}/revoke`. Each operation requires a
+server-signed assertion for the exact method, path, query and body, a current
+login, and current `manage_access` permission. Requests use strict JSON and
+mutations carry `expected_policy_version`. The existing access services check
+scope, prevent self-approval, and commit changes and required audit together.
+An existing preapproval with a different expiry is a conflict.
+
+Request lists accept `status`, `page_size`, and an opaque `cursor`. The cursor
+binds the administrator, status, page size and policy version. The configured
+cursor key is required. Administrator requests have a separate per-user limit
+of ten per minute by default. This limit is local to one process and resets on
+restart. Selected records use encrypted, short-lived handles tied to the
+administrator and policy; raw source references are not accepted from the
+browser. The internal issuer only handles records already in an administrator's
+selected scope. The access-options route and browser interface are separate
+tickets, so a browser cannot yet obtain these handles through this API.
+
+The offline route tests use synthetic identities and a transaction substitute.
+An isolated local MongoDB test also checked preapproval audit rollback and two
+simultaneous duplicate submissions. It removed its synthetic records. These
+checks do not prove production database concurrency or a complete browser flow.
+No real grants are created by the tests.
+
 ## Role and employee access management
 
 `AccessManagement` provides internal role create/edit/deactivation, approved
-employee grant changes/revocation, and preapproval create/revocation. It does
-not add HTTP routes or UI. Each write requires current `manage_access`
+employee grant changes/revocation, and preapproval create/revocation. The
+request-review and preapproval HTTP routes are described above. Role and
+employee management routes and UI remain separate work. Each write requires current `manage_access`
 authorization and the expected policy version. Role and employee updates also
 require the expected record version. The service checks the administrator's
 current user, role and login inside the transaction.

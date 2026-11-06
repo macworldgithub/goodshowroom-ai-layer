@@ -3,6 +3,143 @@ export type paths = Record<string, never>;
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminDecisionRequest */
+        AdminDecisionRequest: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "approve" | "reject";
+            /** Expected Policy Version */
+            expected_policy_version: number;
+            /** Role Id */
+            role_id: string | null;
+            /** Scope Limit */
+            scope_limit: components["schemas"]["AdminScopeGrant"][];
+        };
+        /** AdminMutationData */
+        AdminMutationData: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Policy Version */
+            policy_version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "approved" | "rejected" | "pending" | "revoked";
+        };
+        /** AdminMutationEnvelope */
+        AdminMutationEnvelope: {
+            data: components["schemas"]["AdminMutationData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** AdminPreapprovalRequest */
+        AdminPreapprovalRequest: {
+            /** Email */
+            email: string;
+            /** Expected Policy Version */
+            expected_policy_version: number;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Role Id
+             * Format: uuid
+             */
+            role_id: string;
+            /** Scope Limit */
+            scope_limit: components["schemas"]["AdminScopeGrant"][];
+        };
+        /** AdminRequestItem */
+        AdminRequestItem: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Email */
+            email: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "rejected";
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** AdminRequestPage */
+        AdminRequestPage: {
+            /** Items */
+            items: components["schemas"]["AdminRequestItem"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+            /** Policy Version */
+            policy_version: number;
+        };
+        /** AdminRequestPageEnvelope */
+        AdminRequestPageEnvelope: {
+            data: components["schemas"]["AdminRequestPage"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** AdminRevokeRequest */
+        AdminRevokeRequest: {
+            /** Expected Policy Version */
+            expected_policy_version: number;
+        };
+        /** AdminScopeGrant */
+        AdminScopeGrant: {
+            /**
+             * Dataset
+             * @enum {string}
+             */
+            dataset: "byd-leads-new" | "byd-panel";
+            /** Fields */
+            fields: string[];
+            /** Metrics */
+            metrics: string[];
+            /**
+             * Record Mode
+             * @enum {string}
+             */
+            record_mode: "assigned" | "selected" | "all_permitted";
+            /** Selected Records */
+            selected_records: string[];
+            /** Sites */
+            sites: string[];
+            /** Tools */
+            tools: string[];
+        };
         /** AnswerPeriod */
         AnswerPeriod: {
             /**

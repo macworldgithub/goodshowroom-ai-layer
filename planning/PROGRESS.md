@@ -2,7 +2,42 @@
 
 Purpose: Track verified documentation and implementation progress for this repository.
 
-Status: Implementation - 30 tickets Done; TICKET-031 and TICKET-032 In Review; 26 Backlog
+Status: Implementation - 33 tickets Done; TICKET-031 In Review; 24 Backlog
+
+## TICKET-033 review and closure
+
+The user approved closure on 2026-11-06 with the recorded verification and
+browser integration limits. TICKET-033 is Done. TICKET-031 remains In Review.
+TICKET-034 is next by dependency order and was authorized by the user.
+
+## TICKET-033 implementation for review
+
+Implemented the administrator request-list, decision and preapproval routes.
+They bind signed requests, require current management permission, validate
+scope, use policy-bound page cursors and selected-record handles, and reuse
+fenced writes and required audit. Duplicate preapprovals with different expiry
+now conflict. Offline checks passed 984 backend and 79 frontend tests. Ruff,
+typecheck, lint and contract checks passed. A separate isolated loopback MongoDB
+test passed audit rollback and two concurrent duplicate preapproval requests;
+synthetic records were removed and the test server stopped. The existing test
+database was nonempty and left untouched. Browser access options, proxy and UI
+remain separate work. TICKET-033 is Done after user approval. TICKET-034 is
+next by dependency order and needs explicit authorization.
+
+## TICKET-033 security plan
+
+The user authorized TICKET-033. Verify the signed caller and exact request;
+require current access-management capability; validate role, scope and policy
+versions; use existing fenced transactions and required audit; bind pagination
+to caller, filters and policy; and exercise denial, conflict and rollback paths.
+Do not create real grants or contact production data. Implementation is underway.
+
+## TICKET-032 review and closure
+
+The user approved closure on 2026-11-05 after the requirements and security
+review. The final offline checks passed 975 backend tests and 77 frontend unit
+tests. The recorded process-local rate limit and isolated-test limits remain.
+TICKET-031 remains In Review. TICKET-033 is next by dependency order.
 
 ## TICKET-032 implementation for review
 
@@ -26,8 +61,8 @@ unreadable. No business data, production grant or deployment was used.
 The browser proxy and access-request screens are separate work. The rate limit
 is process-local and resets on restart. Sustained contention can return a
 conflict after bounded retries. TICKET-031 remains In Review with real
-administrator site IDs open. TICKET-032 is In Review pending required review.
-TICKET-033 is next by dependency order; wait for explicit authorization.
+administrator site IDs open. TICKET-032 is Done after user review.
+TICKET-033 is next by dependency order.
 
 ## TICKET-032 start
 

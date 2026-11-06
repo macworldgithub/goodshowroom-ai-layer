@@ -2162,6 +2162,7 @@ class _AppWriteTransaction:
                     and previous.user_id == record.user_id
                     and previous.role_id == record.role_id
                     and previous.scope_limit == record.scope_limit
+                    and previous.expires_at == record.expires_at
                 ):
                     return previous
                 raise AppWriteConflict("Access request already exists.")

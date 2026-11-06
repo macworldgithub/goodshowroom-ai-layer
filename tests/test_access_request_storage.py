@@ -76,8 +76,8 @@ class AccessRequestCursor:
 
 
 class AccessRequestFakeCollection(FakeCollection):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, name, documents=None):
+        super().__init__(name, documents=documents)
         self.find_calls = []
         self.race_document = None
 

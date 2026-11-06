@@ -241,6 +241,21 @@ describe("error envelope semantics", () => {
 });
 
 describe("strict raw JSON input", () => {
+  it("rejects an approval without an explicit role and scope", () => {
+    expectInvalid("AdminDecisionRequest", JSON.stringify({
+      decision: "approve", role_id: null, scope_limit: [], expected_policy_version: 0,
+    }));
+  });
+
+  it("rejects raw database references in selected record handles", () => {
+    expectInvalid("AdminPreapprovalRequest", JSON.stringify({
+      email: "staff@example.test", role_id: requestId, expires_at: null,
+      expected_policy_version: 0, scope_limit: [{ dataset: "byd-panel", sites: ["site_a"],
+        record_mode: "selected", selected_records: [{ key_value: "example" }],
+        fields: ["site"], metrics: [], tools: [] }],
+    }));
+  });
+
   it("rejects a Unicode whitespace-only message", () => {
     expectInvalid("TurnRequest", mutateJson(validTurn, ["message"], "\u0085"));
   });

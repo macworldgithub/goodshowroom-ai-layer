@@ -5,3 +5,8 @@ export function ChatResultEnvelope(value: unknown): boolean;
 export function ErrorEnvelope(value: unknown): boolean;
 export function OwnAccessEnvelope(value: unknown): boolean;
 export function OwnRequestEnvelope(value: unknown): boolean;
+export function AdminDecisionRequest(value: unknown): boolean;
+export function AdminPreapprovalRequest(value: unknown): boolean;
+export function AdminRevokeRequest(value: unknown): boolean;
+export function AdminMutationEnvelope(value: unknown): boolean;
+export function AdminRequestPageEnvelope(value: unknown): boolean;

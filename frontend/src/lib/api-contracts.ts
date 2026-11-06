@@ -6,7 +6,8 @@ import type { components } from "./generated/api-types";
 
 type Schemas = components["schemas"];
 type ContractMap = Pick<Schemas,
-  "CreateChatRequest" | "TurnRequest" | "ChatResultEnvelope" | "ErrorEnvelope" | "OwnAccessEnvelope" | "OwnRequestEnvelope"
+  "CreateChatRequest" | "TurnRequest" | "ChatResultEnvelope" | "ErrorEnvelope" | "OwnAccessEnvelope" | "OwnRequestEnvelope" |
+  "AdminDecisionRequest" | "AdminPreapprovalRequest" | "AdminRevokeRequest" | "AdminMutationEnvelope" | "AdminRequestPageEnvelope"
 >;
 export type ContractName = keyof ContractMap;
 export type { components } from "./generated/api-types";
@@ -63,7 +64,7 @@ function equal(left: unknown, right: unknown): boolean {
 function timestamps(value: unknown): void {
   if (!value || typeof value !== "object") return;
   for (const [key, item] of Object.entries(value)) {
-    if (item !== null && ["start_local", "end_local", "start_utc", "end_utc", "retrieved_at"].includes(key)) {
+    if (item !== null && ["start_local", "end_local", "start_utc", "end_utc", "retrieved_at", "created_at", "expires_at"].includes(key)) {
       if (typeof item !== "string" || !Number.isFinite(Date.parse(item))) invalid();
       if (!["start_local", "end_local"].includes(key) && !/(Z|\+00:00)$/.test(item)) invalid();
     }
@@ -133,7 +134,8 @@ function responseValid(response: Schemas["StructuredResponse"]): void {
 export function parseApiContract<K extends ContractName>(name: K, raw: string, httpStatus?: number): ContractMap[K] {
   try {
     if (!Object.hasOwn(validators, name)) invalid();
-    const maximum = name === "TurnRequest" || name === "CreateChatRequest" ? meta.limits.request_bytes : meta.limits.response_bytes;
+    const requestNames: ContractName[] = ["TurnRequest", "CreateChatRequest", "AdminDecisionRequest", "AdminPreapprovalRequest", "AdminRevokeRequest"];
+    const maximum = requestNames.includes(name) ? meta.limits.request_bytes : meta.limits.response_bytes;
     const decoded = decode(raw, maximum);
     if (!validators[name](decoded)) invalid();
     timestamps(decoded);
@@ -151,6 +153,13 @@ export function parseApiContract<K extends ContractName>(name: K, raw: string, h
       if (httpStatus !== undefined && httpStatus !== 200) invalid();
       if (data.access_status !== "approved" && (data.role !== null || data.capabilities.length || data.scope_choices.length)) invalid();
       if (data.access_status === "approved" && !data.role) invalid();
+    } else if (name === "AdminDecisionRequest") {
+      const data = decoded as Schemas["AdminDecisionRequest"];
+      if (data.decision === "approve" ? data.role_id === null || !data.scope_limit.length : data.role_id !== null || data.scope_limit.length !== 0) invalid();
+    } else if (name === "AdminMutationEnvelope") {
+      if (httpStatus !== undefined && httpStatus !== 200 && httpStatus !== 201) invalid();
+    } else if (name === "AdminRequestPageEnvelope") {
+      if (httpStatus !== undefined && httpStatus !== 200) invalid();
     } else if (name === "OwnRequestEnvelope") {
       if (httpStatus !== undefined && httpStatus !== 200 && httpStatus !== 201) invalid();
     } else if (name === "ErrorEnvelope") {

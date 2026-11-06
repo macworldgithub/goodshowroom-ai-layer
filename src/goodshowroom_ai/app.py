@@ -5,6 +5,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from goodshowroom_ai.admission import AdmissionController
+from goodshowroom_ai.admin_access_routes import (
+    decision,
+    list_requests,
+    preapprove,
+    revoke_preapproval,
+)
 from goodshowroom_ai.api_http import install_error_handlers
 from goodshowroom_ai.config import Settings
 from goodshowroom_ai.cursors import CursorCodec
@@ -26,6 +32,7 @@ def create_app(
     login_workflow=None,
     login_lifecycle=None,
     own_access=None,
+    admin_access=None,
 ) -> FastAPI:
     """Build the app; Mongo connects only when a caller explicitly opts in."""
     configuration = settings if settings is not None else Settings()
@@ -54,6 +61,9 @@ def create_app(
                         application.state.admission
                     )
                 )
+                application.state.admin_access = (
+                    application.state.login_workflow.admin_access_service()
+                )
             if active_memory is not None:
                 await active_memory.start()
             yield
@@ -76,6 +86,7 @@ def create_app(
     app.state.login_workflow = login_workflow
     app.state.login_lifecycle = login_lifecycle
     app.state.own_access = own_access
+    app.state.admin_access = admin_access
     app.state.execution_limits = DEFAULT_LIMITS
     app.state.admission = AdmissionController(limits=DEFAULT_LIMITS)
     app.state.cursor_codec = (
@@ -89,4 +100,14 @@ def create_app(
     app.add_api_route("/v1/internal/login/revoke", revoke, methods=["POST"])
     app.add_api_route("/v1/me", me, methods=["GET"])
     app.add_api_route("/v1/access-requests", create_request, methods=["POST"])
+    app.add_api_route("/v1/admin/access-requests", list_requests, methods=["GET"])
+    app.add_api_route(
+        "/v1/admin/access-requests/{request_id}/decision", decision, methods=["POST"]
+    )
+    app.add_api_route("/v1/admin/preapprovals", preapprove, methods=["POST"])
+    app.add_api_route(
+        "/v1/admin/preapprovals/{request_id}/revoke",
+        revoke_preapproval,
+        methods=["POST"],
+    )
     return app

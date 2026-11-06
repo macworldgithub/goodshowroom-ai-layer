@@ -7,6 +7,7 @@ Only the currently implemented response slice is exported. No endpoint is added.
 import json
 import math
 import re
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Literal
 from uuid import UUID
@@ -22,6 +23,8 @@ from goodshowroom_ai.execution import (
     MAX_WIRE_BYTES,
 )
 from goodshowroom_ai.responses import StructuredResponse
+from goodshowroom_ai.storage.identities import UserRecord
+from goodshowroom_ai.storage.models import utc_datetime
 
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
 # Structural contract bounds; ingress/admission mechanics belong to TICKET-057.
@@ -245,6 +248,94 @@ class OwnRequestEnvelope(CreateChatRequest):
     data: OwnRequestData
 
 
+class AdminScopeGrant(Contract):
+    dataset: Literal["byd-leads-new", "byd-panel"]
+    sites: tuple[str, ...] = Field(min_length=1, max_length=100)
+    record_mode: Literal["assigned", "selected", "all_permitted"]
+    selected_records: tuple[str, ...] = Field(max_length=100)
+    fields: tuple[str, ...] = Field(min_length=1, max_length=100)
+    metrics: tuple[str, ...] = Field(max_length=100)
+    tools: tuple[str, ...] = Field(max_length=100)
+
+    @model_validator(mode="after")
+    def selection(self):
+        if (self.record_mode == "selected") != bool(self.selected_records):
+            raise ValueError("Selected records require handles")
+        if any(not handle or len(handle) > 4096 for handle in self.selected_records):
+            raise ValueError("Invalid record handle")
+        return self
+
+
+class AdminDecisionRequest(Contract):
+    decision: Literal["approve", "reject"]
+    role_id: UUID | None
+    scope_limit: tuple[AdminScopeGrant, ...] = Field(max_length=100)
+    expected_policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+    @model_validator(mode="after")
+    def decision_scope(self):
+        if self.decision == "approve":
+            if self.role_id is None or not self.scope_limit:
+                raise ValueError("Approval requires scope")
+        elif self.role_id is not None or self.scope_limit:
+            raise ValueError("Rejection cannot grant scope")
+        return self
+
+
+class AdminPreapprovalRequest(Contract):
+    email: str = Field(min_length=3, max_length=254)
+    role_id: UUID
+    scope_limit: tuple[AdminScopeGrant, ...] = Field(min_length=1, max_length=100)
+    expires_at: datetime | None
+    expected_policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+    @field_validator("email")
+    @classmethod
+    def valid_email(cls, value):
+        return UserRecord.email(value)
+
+    @field_validator("expires_at")
+    @classmethod
+    def valid_expiry(cls, value):
+        if value is not None and value.utcoffset() != timedelta(0):
+            raise ValueError("Expiry must use UTC")
+        return utc_datetime(value) if value is not None else None
+
+
+class AdminRevokeRequest(Contract):
+    expected_policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+
+class AdminMutationData(Contract):
+    id: UUID
+    status: Literal["approved", "rejected", "pending", "revoked"]
+    policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+
+class AdminMutationEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: AdminMutationData
+
+
+class AdminRequestItem(Contract):
+    id: UUID
+    user_id: UUID
+    email: str = Field(min_length=3, max_length=254)
+    status: Literal["pending", "approved", "rejected"]
+    created_at: datetime
+
+
+class AdminRequestPage(Contract):
+    items: list[AdminRequestItem] = Field(max_length=100)
+    next_cursor: str | None = Field(max_length=4096)
+    policy_version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+
+
+class AdminRequestPageEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: AdminRequestPage
+
+
 class ApiError(Contract):
     code: ErrorCode
     message: str = Field(min_length=1, max_length=200)
@@ -273,6 +364,11 @@ PUBLIC_MODELS = (
     ErrorEnvelope,
     OwnAccessEnvelope,
     OwnRequestEnvelope,
+    AdminDecisionRequest,
+    AdminPreapprovalRequest,
+    AdminRevokeRequest,
+    AdminMutationEnvelope,
+    AdminRequestPageEnvelope,
 )
 
 
@@ -359,7 +455,14 @@ def parse_contract(model, raw: bytes):
             raise ValueError()
         maximum = (
             MAX_REQUEST_BYTES
-            if model in {TurnRequest, CreateChatRequest}
+            if model
+            in {
+                TurnRequest,
+                CreateChatRequest,
+                AdminDecisionRequest,
+                AdminPreapprovalRequest,
+                AdminRevokeRequest,
+            }
             else MAX_WIRE_BYTES
         )
         if len(raw) > maximum:

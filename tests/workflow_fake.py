@@ -3,12 +3,14 @@
 import asyncio
 from copy import deepcopy
 
-from tests.test_access_request_storage import AccessRequestFakeDatabase
+from tests.test_access_request_storage import (
+    AccessRequestFakeCollection,
+    AccessRequestFakeDatabase,
+)
 from tests.test_identity_storage import FakeClient, FakeSession, FakeTransaction
-from tests.test_identity_storage import FakeCollection
 
 
-class WorkflowCollection(FakeCollection):
+class WorkflowCollection(AccessRequestFakeCollection):
     async def find_one(self, query, *, session):
         assert session is not None
         for row in self.documents.values():
@@ -65,5 +67,6 @@ class RollbackClient(FakeClient):
             "app_settings", settings
         )
         self.database.collections["users"] = WorkflowCollection("users")
+        self.database.collections["roles"] = WorkflowCollection("roles")
         self.lock = asyncio.Lock()
         self.session = RollbackSession(self)
