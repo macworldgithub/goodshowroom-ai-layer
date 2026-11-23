@@ -4,12 +4,17 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from goodshowroom_ai.admission import AdmissionController
 from goodshowroom_ai.admin_access_routes import (
     decision,
     list_requests,
     preapprove,
     revoke_preapproval,
+)
+from goodshowroom_ai.admin_configuration_routes import (
+    access_options,
+    get_admin_settings,
+    patch_admin_settings,
+    put_identity_mapping,
 )
 from goodshowroom_ai.admin_management_routes import (
     create_admin_role,
@@ -18,16 +23,18 @@ from goodshowroom_ai.admin_management_routes import (
     update_admin_role,
     update_admin_user_access,
 )
+from goodshowroom_ai.admin_staff import StaffDirectory
+from goodshowroom_ai.admission import AdmissionController
 from goodshowroom_ai.api_http import install_error_handlers
 from goodshowroom_ai.config import Settings
 from goodshowroom_ai.cursors import CursorCodec
 from goodshowroom_ai.execution import DEFAULT_LIMITS
 from goodshowroom_ai.login_routes import exchange, renew, revoke
 from goodshowroom_ai.login_setup import build_login_services
-from goodshowroom_ai.own_access_routes import me, create_request
+from goodshowroom_ai.own_access_routes import create_request, me
 from goodshowroom_ai.storage.mongo import AppDatabase, ClientFactory
-from goodshowroom_ai.tracing import configure_tracing
 from goodshowroom_ai.temporary import TemporaryMemoryStore
+from goodshowroom_ai.tracing import configure_tracing
 
 
 def create_app(
@@ -41,6 +48,7 @@ def create_app(
     own_access=None,
     admin_access=None,
     admin_management=None,
+    admin_configuration=None,
 ) -> FastAPI:
     """Build the app; Mongo connects only when a caller explicitly opts in."""
     configuration = settings if settings is not None else Settings()
@@ -49,6 +57,7 @@ def create_app(
     @asynccontextmanager
     async def lifespan(application: FastAPI):
         database = None
+        staff_directory = None
         active_memory = temporary_memory
         application.state.app_database = None
         try:
@@ -72,6 +81,17 @@ def create_app(
                 application.state.admin_access = (
                     application.state.login_workflow.admin_access_service()
                 )
+                staff_directory = StaffDirectory(
+                    {
+                        "byd-leads-new": configuration.lead_mongo_uri,
+                        "byd-panel": configuration.delivery_mongo_uri,
+                    }
+                )
+                application.state.admin_configuration = (
+                    application.state.login_workflow.admin_configuration_service(
+                        staff_directory
+                    )
+                )
                 application.state.admin_management = (
                     application.state.login_workflow.admin_management_service()
                 )
@@ -80,15 +100,19 @@ def create_app(
             yield
         finally:
             try:
-                if database is not None:
-                    application.state.app_database = None
-                    await database.close()
+                if staff_directory is not None:
+                    await staff_directory.close()
             finally:
                 try:
-                    if active_memory is not None:
-                        await active_memory.close()
+                    if database is not None:
+                        application.state.app_database = None
+                        await database.close()
                 finally:
-                    tracing.close()
+                    try:
+                        if active_memory is not None:
+                            await active_memory.close()
+                    finally:
+                        tracing.close()
 
     app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None, lifespan=lifespan)
     app.state.environment = configuration.app_env
@@ -99,6 +123,7 @@ def create_app(
     app.state.own_access = own_access
     app.state.admin_access = admin_access
     app.state.admin_management = admin_management
+    app.state.admin_configuration = admin_configuration
     app.state.execution_limits = DEFAULT_LIMITS
     app.state.admission = AdmissionController(limits=DEFAULT_LIMITS)
     app.state.cursor_codec = (
@@ -131,4 +156,12 @@ def create_app(
         update_admin_user_access,
         methods=["PATCH"],
     )
+    app.add_api_route("/v1/admin/access-options", access_options, methods=["GET"])
+    app.add_api_route(
+        "/v1/admin/users/{user_id}/identity-mappings/{dataset_id}",
+        put_identity_mapping,
+        methods=["PUT"],
+    )
+    app.add_api_route("/v1/admin/settings", get_admin_settings, methods=["GET"])
+    app.add_api_route("/v1/admin/settings", patch_admin_settings, methods=["PATCH"])
     return app

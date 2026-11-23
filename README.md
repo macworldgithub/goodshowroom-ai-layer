@@ -48,7 +48,7 @@ compatible maintained lint stack when upstream plugins support it. This tool
 limitation does not grant production readiness.
 
 The TICKET-018 npm audit reported five high-severity entries from one
-development-only chain: Next's lint plugin → fast-glob → micromatch → braces.
+development-only chain: Next's lint plugin â†’ fast-glob â†’ micromatch â†’ braces.
 [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)
 has no published patched version. The checked production dependency audit has
 zero findings. Use only trusted local lint patterns; do not expose lint/glob
@@ -759,7 +759,7 @@ data. The approved disclosure boundary still refuses zero/partial/live count
 release: this ticket adds no policy exemption. Synthetic approved positive
 publications exercise the full response path. Content-free partial notices can
 be built, but partial numerical answers need an approved disclosure extension.
-Q-02–Q-05, categorical/trend charts, record tables, HTTP envelopes/headers,
+Q-02â€“Q-05, categorical/trend charts, record tables, HTTP envelopes/headers,
 session storage and frontend rendering remain with their registered tickets.
 This module makes no model calls and persists no saved or temporary chat content.
 
@@ -1128,6 +1128,42 @@ revocation, audit rollback and preapproval operations. They do not prove real
 MongoDB transaction isolation, rollback or concurrency. No live database was
 used. These operations need isolated MongoDB verification before use in a live
 identity flow.
+
+## Administrator choices, identity mappings and settings
+
+These endpoints use the existing server-signed assertion. Sign the exact
+method, path, query and body. Each endpoint applies the administrator request
+limit. A user session alone grants no administrator rights.
+
+| Method and path | Request and result |
+| --- | --- |
+| GET /v1/admin/access-options | Optional dataset and canonical site filters. Supply both to see up to 20 active staff choices and 25 known selected record handles. Use the optional exact staff_name filter to narrow a staff search. The response keeps choices within each grant. |
+| PUT /v1/admin/users/{user_id}/identity-mappings/{dataset_id} | Send site, staff_handle, expected_policy_version and expected_version. A null version creates the mapping. An integer version re-verifies the same source and updates the mapping. |
+| GET /v1/admin/settings | Returns the three fixed setting types with versions. The site view includes only sites within the administrator's grant authority. |
+| PATCH /v1/admin/settings | Send expected_policy_version, expected_version, and one typed setting. The setting_id is sites, retention, or disclosure. |
+
+The staff directory reads only the fixed users collection in a configured
+LEAD_MONGO_URI or DELIVERY_CENTER_MONGO_URI database. It reads active accounts
+with a stable ObjectId and an exact configured site alias. A name only filters
+the options. The server resolves a staff handle and checks the source again
+before saving a mapping. Missing configuration, conflicting site labels and
+records without a verified identifier produce no eligible staff choice. The
+endpoint returns a display name and an encrypted handle. Configure the server's
+AI_LAYER_CURSOR_ENCRYPTION_KEY before issuing staff or record handles. Scope choices expose
+supported lead fields, tools, and metrics. Selected lead record handles require
+a grant with one site. Source credentials are private server settings.
+
+An administrator can replace the visible site configuration and update its
+time zones. The server preserves sites outside the administrator's scope.
+New site IDs must already be in that scope. Only aliases already bound to the
+same site can be retained. Add reviewed alias bindings through trusted catalog
+setup. Retention accepts only null durations. Disclosure accepts only false.
+Unknown setting types, unexpected fields and custom queries fail validation.
+
+To review a settings update, read the current policy and setting versions
+from GET /v1/admin/settings. Change an allowed site's time zone and send both
+versions in PATCH. Expect the response to show the new setting and version.
+Repeat the original request to check for a 409 version conflict.
 
 ## Q-01 offline evaluation
 

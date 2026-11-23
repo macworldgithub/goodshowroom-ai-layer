@@ -52,7 +52,9 @@ class AdminAccess:
         self._workflow = workflow
         self._management = AccessManagement(db, authorization, clock)
 
-    async def authorize(self, token, *, method, path, query=b"", body=b""):
+    async def authorize(
+        self, token, *, method, path, query=b"", body=b"", action="manage_access"
+    ):
         context = OwnAccessService._context(token)
         async with self._db.snapshot_transaction(context) as tx:
             claims = await self._verifier.verify(
@@ -71,7 +73,7 @@ class AdminAccess:
             generation=claims["generation"],
         )
         decision = await self._authorization.authorize(
-            principal, ProtectedAction(action="manage_access")
+            principal, ProtectedAction(action=action)
         )
         return principal, decision
 

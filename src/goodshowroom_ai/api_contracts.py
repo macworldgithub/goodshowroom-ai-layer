@@ -25,6 +25,7 @@ from goodshowroom_ai.execution import (
 from goodshowroom_ai.responses import StructuredResponse
 from goodshowroom_ai.storage.identities import UserRecord
 from goodshowroom_ai.storage.models import utc_datetime
+from goodshowroom_ai.storage.settings import SiteConfiguration
 
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
 # Structural contract bounds; ingress/admission mechanics belong to TICKET-057.
@@ -486,7 +487,95 @@ class ErrorEnvelope(CreateChatRequest):
     error: ApiError
 
 
+class AdminChoiceScope(Contract):
+    dataset: Literal["byd-leads-new", "byd-panel"]
+    sites: tuple[str, ...] = Field(max_length=100)
+    fields: tuple[str, ...] = Field(max_length=100)
+    tools: tuple[str, ...] = Field(max_length=100)
+    metrics: tuple[str, ...] = Field(max_length=100)
+    record_mode: Literal["assigned", "selected", "all_permitted"]
+
+
+class AdminStaffChoice(Contract):
+    name: str = Field(min_length=1, max_length=100)
+    handle: str = Field(min_length=1, max_length=4096)
+
+
+class AdminOptionsData(Contract):
+    policy_version: int = Field(ge=0)
+    scopes: tuple[AdminChoiceScope, ...] = Field(max_length=100)
+    staff_available: bool
+    staff: tuple[AdminStaffChoice, ...] = Field(max_length=20)
+    records: tuple[str, ...] = Field(max_length=25)
+
+
+class AdminOptionsEnvelope(CreateChatRequest):
+    data: AdminOptionsData
+
+
+class AdminMappingRequest(Contract):
+    expected_policy_version: int = Field(ge=0)
+    expected_version: int | None = Field(ge=0)
+    site: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
+    staff_handle: str = Field(min_length=1, max_length=4096)
+
+
+class AdminMappingData(Contract):
+    id: UUID
+    version: int = Field(ge=0)
+    policy_version: int = Field(ge=0)
+    site: str = Field(min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
+
+
+class AdminMappingEnvelope(CreateChatRequest):
+    data: AdminMappingData
+
+
+class AdminSiteSetting(Contract):
+    setting_id: Literal["sites"]
+    sites: tuple[SiteConfiguration, ...] = Field(max_length=100)
+
+
+class AdminRetentionSetting(Contract):
+    setting_id: Literal["retention"]
+    saved_retention_days: None
+    audit_retention_days: None
+
+
+class AdminDisclosureSetting(Contract):
+    setting_id: Literal["disclosure"]
+    disclosure_enabled: Literal[False]
+
+
+AdminSettingValue = AdminSiteSetting | AdminRetentionSetting | AdminDisclosureSetting
+
+
+class AdminSettingsRequest(Contract):
+    expected_policy_version: int = Field(ge=0)
+    expected_version: int | None = Field(ge=0)
+    setting: AdminSettingValue
+
+
+class AdminSettingItem(Contract):
+    version: int | None = Field(ge=0)
+    setting: AdminSettingValue
+
+
+class AdminSettingsData(Contract):
+    policy_version: int = Field(ge=0)
+    settings: tuple[AdminSettingItem, ...] = Field(min_length=1, max_length=3)
+
+
+class AdminSettingsEnvelope(CreateChatRequest):
+    data: AdminSettingsData
+
+
 PUBLIC_MODELS = (
+    AdminOptionsEnvelope,
+    AdminMappingRequest,
+    AdminMappingEnvelope,
+    AdminSettingsRequest,
+    AdminSettingsEnvelope,
     CreateChatRequest,
     TurnRequest,
     ChatResultEnvelope,
@@ -599,6 +688,8 @@ def parse_contract(model, raw: bytes):
                 AdminDecisionRequest,
                 AdminPreapprovalRequest,
                 AdminRevokeRequest,
+                AdminMappingRequest,
+                AdminSettingsRequest,
             }
             else MAX_WIRE_BYTES
         )

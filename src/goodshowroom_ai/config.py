@@ -35,6 +35,12 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("AI_LAYER_MONGO_URI", "app_mongo_uri"),
     )
+    lead_mongo_uri: SecretStr | None = Field(
+        default=None, validation_alias="LEAD_MONGO_URI"
+    )
+    delivery_mongo_uri: SecretStr | None = Field(
+        default=None, validation_alias="DELIVERY_CENTER_MONGO_URI"
+    )
     cursor_encryption_key: SecretStr | None = Field(
         default=None,
         validation_alias=AliasChoices(
@@ -47,7 +53,9 @@ class Settings(BaseSettings):
     def empty_identity_key_time_is_unconfigured(cls, value):
         return 0 if value == "" else value
 
-    @field_validator("cursor_encryption_key", mode="before")
+    @field_validator(
+        "cursor_encryption_key", "lead_mongo_uri", "delivery_mongo_uri", mode="before"
+    )
     @classmethod
     def empty_cursor_key_is_unconfigured(cls, value):
         if isinstance(value, str) and not value.strip():

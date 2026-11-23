@@ -3,6 +3,27 @@ export type paths = Record<string, never>;
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminChoiceScope */
+        AdminChoiceScope: {
+            /**
+             * Dataset
+             * @enum {string}
+             */
+            dataset: "byd-leads-new" | "byd-panel";
+            /** Fields */
+            fields: string[];
+            /** Metrics */
+            metrics: string[];
+            /**
+             * Record Mode
+             * @enum {string}
+             */
+            record_mode: "assigned" | "selected" | "all_permitted";
+            /** Sites */
+            sites: string[];
+            /** Tools */
+            tools: string[];
+        };
         /** AdminDecisionRequest */
         AdminDecisionRequest: {
             /**
@@ -16,6 +37,53 @@ export interface components {
             role_id: string | null;
             /** Scope Limit */
             scope_limit: components["schemas"]["AdminScopeGrant"][];
+        };
+        /** AdminDisclosureSetting */
+        AdminDisclosureSetting: {
+            /**
+             * Disclosure Enabled
+             * @constant
+             */
+            disclosure_enabled: false;
+            /**
+             * Setting Id
+             * @constant
+             */
+            setting_id: "disclosure";
+        };
+        /** AdminMappingData */
+        AdminMappingData: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Policy Version */
+            policy_version: number;
+            /** Site */
+            site: string;
+            /** Version */
+            version: number;
+        };
+        /** AdminMappingEnvelope */
+        AdminMappingEnvelope: {
+            data: components["schemas"]["AdminMappingData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+        };
+        /** AdminMappingRequest */
+        AdminMappingRequest: {
+            /** Expected Policy Version */
+            expected_policy_version: number;
+            /** Expected Version */
+            expected_version: number | null;
+            /** Site */
+            site: string;
+            /** Staff Handle */
+            staff_handle: string;
         };
         /** AdminMutationData */
         AdminMutationData: {
@@ -46,6 +114,28 @@ export interface components {
              * @constant
              */
             schema_version: 1;
+        };
+        /** AdminOptionsData */
+        AdminOptionsData: {
+            /** Policy Version */
+            policy_version: number;
+            /** Records */
+            records: string[];
+            /** Scopes */
+            scopes: components["schemas"]["AdminChoiceScope"][];
+            /** Staff */
+            staff: components["schemas"]["AdminStaffChoice"][];
+            /** Staff Available */
+            staff_available: boolean;
+        };
+        /** AdminOptionsEnvelope */
+        AdminOptionsEnvelope: {
+            data: components["schemas"]["AdminOptionsData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
         };
         /** AdminPreapprovalRequest */
         AdminPreapprovalRequest: {
@@ -111,6 +201,18 @@ export interface components {
              * @constant
              */
             schema_version: 1;
+        };
+        /** AdminRetentionSetting */
+        AdminRetentionSetting: {
+            /** Audit Retention Days */
+            audit_retention_days: null;
+            /** Saved Retention Days */
+            saved_retention_days: null;
+            /**
+             * Setting Id
+             * @constant
+             */
+            setting_id: "retention";
         };
         /** AdminRevokeRequest */
         AdminRevokeRequest: {
@@ -251,6 +353,55 @@ export interface components {
             sites: string[];
             /** Tools */
             tools: string[];
+        };
+        /** AdminSettingItem */
+        AdminSettingItem: {
+            /** Setting */
+            setting: components["schemas"]["AdminSiteSetting"] | components["schemas"]["AdminRetentionSetting"] | components["schemas"]["AdminDisclosureSetting"];
+            /** Version */
+            version: number | null;
+        };
+        /** AdminSettingsData */
+        AdminSettingsData: {
+            /** Policy Version */
+            policy_version: number;
+            /** Settings */
+            settings: components["schemas"]["AdminSettingItem"][];
+        };
+        /** AdminSettingsEnvelope */
+        AdminSettingsEnvelope: {
+            data: components["schemas"]["AdminSettingsData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+        };
+        /** AdminSettingsRequest */
+        AdminSettingsRequest: {
+            /** Expected Policy Version */
+            expected_policy_version: number;
+            /** Expected Version */
+            expected_version: number | null;
+            /** Setting */
+            setting: components["schemas"]["AdminSiteSetting"] | components["schemas"]["AdminRetentionSetting"] | components["schemas"]["AdminDisclosureSetting"];
+        };
+        /** AdminSiteSetting */
+        AdminSiteSetting: {
+            /**
+             * Setting Id
+             * @constant
+             */
+            setting_id: "sites";
+            /** Sites */
+            sites: components["schemas"]["SiteConfiguration"][];
+        };
+        /** AdminStaffChoice */
+        AdminStaffChoice: {
+            /** Handle */
+            handle: string;
+            /** Name */
+            name: string;
         };
         /** AdminUserAccessMutationData */
         AdminUserAccessMutationData: {
@@ -746,6 +897,21 @@ export interface components {
             sites: string[];
             /** Tools */
             tools: string[];
+        };
+        /** SiteConfiguration */
+        SiteConfiguration: {
+            /**
+             * Aliases
+             * @default []
+             */
+            aliases: string[];
+            /** Site Id */
+            site_id: string;
+            /**
+             * Timezone
+             * @default null
+             */
+            timezone: string | null;
         };
         /** Source */
         Source: {

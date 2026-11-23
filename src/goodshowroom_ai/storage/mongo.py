@@ -1808,6 +1808,45 @@ class _AppWriteTransaction:
             self.__poisoned = True
             raise AppDatabaseUnavailable("Identity record is unavailable.") from None
 
+    async def get_user_mapping(
+        self, user_id: UUID, dataset: str
+    ) -> IdentityMapping | None:
+        self.__require(StorageCapability.READ_SETTINGS)
+        if not isinstance(user_id, UUID) or dataset not in {
+            "byd-leads-new",
+            "byd-panel",
+        }:
+            raise ValueError("Invalid mapping target.")
+        try:
+            rows = (
+                await self.__database["identity_mappings"]
+                .find(
+                    {"user_id": str(user_id), "source_ref.database": dataset},
+                    projection={"_id": 1},
+                    session=self.__session,
+                )
+                .limit(2)
+                .to_list(length=2)
+            )
+            if len(rows) > 1:
+                raise AppWriteConflict("Multiple mappings require review.")
+            if not rows:
+                return None
+            mapping = await self.get_mapping(UUID(rows[0]["_id"]))
+            if (
+                mapping is None
+                or mapping.user_id != user_id
+                or mapping.source_ref.database != dataset
+            ):
+                raise AppWriteConflict("Mapping changed.")
+            return mapping
+        except AppWriteConflict:
+            self.__poisoned = True
+            raise
+        except Exception:
+            self.__poisoned = True
+            raise AppDatabaseUnavailable("Identity mapping is unavailable.") from None
+
     async def get_mapping(self, identifier: UUID) -> IdentityMapping | None:
         self.__require(StorageCapability.READ_SETTINGS)
         return await self.__read_identity(

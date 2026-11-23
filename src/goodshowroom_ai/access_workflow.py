@@ -97,6 +97,13 @@ class AccessWorkflow:
             self._db, self._verifier, self._authorization, self._clock, self
         )
 
+    def admin_configuration_service(self, staff):
+        from goodshowroom_ai.admin_configuration import AdminConfiguration
+
+        return AdminConfiguration(
+            self._db, self._verifier, self._authorization, self._clock, staff
+        )
+
     def admin_management_service(self):
         from goodshowroom_ai.admin_management import AdminManagement
 

@@ -1,6 +1,70 @@
 {
   "components": {
     "schemas": {
+      "AdminChoiceScope": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset": {
+            "enum": [
+              "byd-leads-new",
+              "byd-panel"
+            ],
+            "title": "Dataset",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Fields",
+            "type": "array"
+          },
+          "metrics": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Metrics",
+            "type": "array"
+          },
+          "record_mode": {
+            "enum": [
+              "assigned",
+              "selected",
+              "all_permitted"
+            ],
+            "title": "Record Mode",
+            "type": "string"
+          },
+          "sites": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Sites",
+            "type": "array"
+          },
+          "tools": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Tools",
+            "type": "array"
+          }
+        },
+        "required": [
+          "dataset",
+          "sites",
+          "fields",
+          "tools",
+          "metrics",
+          "record_mode"
+        ],
+        "title": "AdminChoiceScope",
+        "type": "object"
+      },
       "AdminDecisionRequest": {
         "additionalProperties": false,
         "properties": {
@@ -47,6 +111,130 @@
           "expected_policy_version"
         ],
         "title": "AdminDecisionRequest",
+        "type": "object"
+      },
+      "AdminDisclosureSetting": {
+        "additionalProperties": false,
+        "properties": {
+          "disclosure_enabled": {
+            "const": false,
+            "title": "Disclosure Enabled",
+            "type": "boolean"
+          },
+          "setting_id": {
+            "const": "disclosure",
+            "title": "Setting Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "setting_id",
+          "disclosure_enabled"
+        ],
+        "title": "AdminDisclosureSetting",
+        "type": "object"
+      },
+      "AdminMappingData": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Policy Version",
+            "type": "integer"
+          },
+          "site": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "title": "Site",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "policy_version",
+          "site"
+        ],
+        "title": "AdminMappingData",
+        "type": "object"
+      },
+      "AdminMappingEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminMappingData"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "data"
+        ],
+        "title": "AdminMappingEnvelope",
+        "type": "object"
+      },
+      "AdminMappingRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Expected Policy Version",
+            "type": "integer"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
+          "site": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "title": "Site",
+            "type": "string"
+          },
+          "staff_handle": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Staff Handle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_policy_version",
+          "expected_version",
+          "site",
+          "staff_handle"
+        ],
+        "title": "AdminMappingRequest",
         "type": "object"
       },
       "AdminMutationData": {
@@ -109,6 +297,74 @@
           "data"
         ],
         "title": "AdminMutationEnvelope",
+        "type": "object"
+      },
+      "AdminOptionsData": {
+        "additionalProperties": false,
+        "properties": {
+          "policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Policy Version",
+            "type": "integer"
+          },
+          "records": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 25,
+            "title": "Records",
+            "type": "array"
+          },
+          "scopes": {
+            "items": {
+              "$ref": "#/components/schemas/AdminChoiceScope"
+            },
+            "maxItems": 100,
+            "title": "Scopes",
+            "type": "array"
+          },
+          "staff": {
+            "items": {
+              "$ref": "#/components/schemas/AdminStaffChoice"
+            },
+            "maxItems": 20,
+            "title": "Staff",
+            "type": "array"
+          },
+          "staff_available": {
+            "title": "Staff Available",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "policy_version",
+          "scopes",
+          "staff_available",
+          "staff",
+          "records"
+        ],
+        "title": "AdminOptionsData",
+        "type": "object"
+      },
+      "AdminOptionsEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminOptionsData"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "data"
+        ],
+        "title": "AdminOptionsEnvelope",
         "type": "object"
       },
       "AdminPreapprovalRequest": {
@@ -276,6 +532,31 @@
           "data"
         ],
         "title": "AdminRequestPageEnvelope",
+        "type": "object"
+      },
+      "AdminRetentionSetting": {
+        "additionalProperties": false,
+        "properties": {
+          "audit_retention_days": {
+            "title": "Audit Retention Days",
+            "type": "null"
+          },
+          "saved_retention_days": {
+            "title": "Saved Retention Days",
+            "type": "null"
+          },
+          "setting_id": {
+            "const": "retention",
+            "title": "Setting Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "setting_id",
+          "saved_retention_days",
+          "audit_retention_days"
+        ],
+        "title": "AdminRetentionSetting",
         "type": "object"
       },
       "AdminRevokeRequest": {
@@ -668,6 +949,182 @@
           "tools"
         ],
         "title": "AdminScopeGrant",
+        "type": "object"
+      },
+      "AdminSettingItem": {
+        "additionalProperties": false,
+        "properties": {
+          "setting": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminSiteSetting"
+              },
+              {
+                "$ref": "#/components/schemas/AdminRetentionSetting"
+              },
+              {
+                "$ref": "#/components/schemas/AdminDisclosureSetting"
+              }
+            ],
+            "title": "Setting"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "version",
+          "setting"
+        ],
+        "title": "AdminSettingItem",
+        "type": "object"
+      },
+      "AdminSettingsData": {
+        "additionalProperties": false,
+        "properties": {
+          "policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Policy Version",
+            "type": "integer"
+          },
+          "settings": {
+            "items": {
+              "$ref": "#/components/schemas/AdminSettingItem"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Settings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "policy_version",
+          "settings"
+        ],
+        "title": "AdminSettingsData",
+        "type": "object"
+      },
+      "AdminSettingsEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AdminSettingsData"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "data"
+        ],
+        "title": "AdminSettingsEnvelope",
+        "type": "object"
+      },
+      "AdminSettingsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_policy_version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Expected Policy Version",
+            "type": "integer"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          },
+          "setting": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminSiteSetting"
+              },
+              {
+                "$ref": "#/components/schemas/AdminRetentionSetting"
+              },
+              {
+                "$ref": "#/components/schemas/AdminDisclosureSetting"
+              }
+            ],
+            "title": "Setting"
+          }
+        },
+        "required": [
+          "expected_policy_version",
+          "expected_version",
+          "setting"
+        ],
+        "title": "AdminSettingsRequest",
+        "type": "object"
+      },
+      "AdminSiteSetting": {
+        "additionalProperties": false,
+        "properties": {
+          "setting_id": {
+            "const": "sites",
+            "title": "Setting Id",
+            "type": "string"
+          },
+          "sites": {
+            "items": {
+              "$ref": "#/components/schemas/SiteConfiguration"
+            },
+            "maxItems": 100,
+            "title": "Sites",
+            "type": "array"
+          }
+        },
+        "required": [
+          "setting_id",
+          "sites"
+        ],
+        "title": "AdminSiteSetting",
+        "type": "object"
+      },
+      "AdminStaffChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "handle": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Handle",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "handle"
+        ],
+        "title": "AdminStaffChoice",
         "type": "object"
       },
       "AdminUserAccessMutationData": {
@@ -1777,6 +2234,47 @@
         "title": "OwnScopeChoice",
         "type": "object"
       },
+      "SiteConfiguration": {
+        "additionalProperties": false,
+        "properties": {
+          "aliases": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Aliases",
+            "type": "array"
+          },
+          "site_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "title": "Site Id",
+            "type": "string"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Timezone"
+          }
+        },
+        "required": [
+          "site_id",
+          "aliases",
+          "timezone"
+        ],
+        "title": "SiteConfiguration",
+        "type": "object"
+      },
       "Source": {
         "additionalProperties": false,
         "properties": {
@@ -2034,7 +2532,7 @@
     "request_bytes": 65536,
     "response_bytes": 1048576
   },
-  "x-contract-stage": "Q-01, own-access, administrator access, and role/user management schemas; no business-data endpoints",
+  "x-contract-stage": "Q-01, own-access, administrator access, role/user management, and administrator configuration schemas; no business-data endpoints",
   "x-error-catalog": {
     "access_denied": {
       "allows_commit_state": false,

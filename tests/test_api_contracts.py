@@ -419,6 +419,21 @@ def test_openapi_export_is_offline_empty_path_and_public_only():
     document = public_openapi()
     schemas = document["components"]["schemas"]
     expected_components = {
+        "AdminChoiceScope",
+        "AdminDisclosureSetting",
+        "AdminMappingData",
+        "AdminMappingEnvelope",
+        "AdminMappingRequest",
+        "AdminOptionsData",
+        "AdminOptionsEnvelope",
+        "AdminRetentionSetting",
+        "AdminSettingItem",
+        "AdminSettingsData",
+        "AdminSettingsEnvelope",
+        "AdminSettingsRequest",
+        "AdminSiteSetting",
+        "AdminStaffChoice",
+        "SiteConfiguration",
         "AdminDecisionRequest",
         "AdminMutationData",
         "AdminMutationEnvelope",

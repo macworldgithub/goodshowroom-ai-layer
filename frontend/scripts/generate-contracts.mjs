@@ -48,6 +48,11 @@ const names = [
   "AdminUserAccessMutationEnvelope",
   "AdminRolePageEnvelope",
   "AdminUserPageEnvelope",
+  "AdminOptionsEnvelope",
+  "AdminMappingRequest",
+  "AdminMappingEnvelope",
+  "AdminSettingsRequest",
+  "AdminSettingsEnvelope",
 ];
 const exports = Object.fromEntries(names.map((name) => [name, `urn:goodshowroom:public:v1#/$defs/${name}`]));
 const files = {

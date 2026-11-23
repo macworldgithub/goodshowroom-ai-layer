@@ -17,3 +17,8 @@ export function AdminRoleMutationEnvelope(value: unknown): boolean;
 export function AdminUserAccessMutationEnvelope(value: unknown): boolean;
 export function AdminRolePageEnvelope(value: unknown): boolean;
 export function AdminUserPageEnvelope(value: unknown): boolean;
+export function AdminOptionsEnvelope(value: unknown): boolean;
+export function AdminMappingRequest(value: unknown): boolean;
+export function AdminMappingEnvelope(value: unknown): boolean;
+export function AdminSettingsRequest(value: unknown): boolean;
+export function AdminSettingsEnvelope(value: unknown): boolean;
