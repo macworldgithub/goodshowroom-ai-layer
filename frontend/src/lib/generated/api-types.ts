@@ -898,6 +898,84 @@ export interface components {
             /** Tools */
             tools: string[];
         };
+        /** ReviewChatEnvelope */
+        ReviewChatEnvelope: {
+            data: components["schemas"]["ReviewChatPage"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** ReviewChatPage */
+        ReviewChatPage: {
+            /** Chats */
+            chats: components["schemas"]["ReviewChatSummary"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** ReviewChatSummary */
+        ReviewChatSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Last Activity At
+             * Format: date-time
+             */
+            last_activity_at: string;
+            /**
+             * Title
+             * @constant
+             */
+            title: "New chat";
+        };
+        /** ReviewTurn */
+        ReviewTurn: {
+            /**
+             * Committed At
+             * Format: date-time
+             */
+            committed_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            response: components["schemas"]["StructuredResponse"];
+        };
+        /** ReviewTurnEnvelope */
+        ReviewTurnEnvelope: {
+            data: components["schemas"]["ReviewTurnPage"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** ReviewTurnPage */
+        ReviewTurnPage: {
+            /** Next Cursor */
+            next_cursor: string | null;
+            /** Notice */
+            notice: "Some saved messages are hidden because current access does not allow them." | null;
+            /** Turns */
+            turns: components["schemas"]["ReviewTurn"][];
+        };
         /** SavedChatData */
         SavedChatData: {
             /**

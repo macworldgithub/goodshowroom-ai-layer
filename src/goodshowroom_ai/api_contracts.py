@@ -233,8 +233,7 @@ class SavedHistoryItem(Contract):
     committed_at: datetime
 
 
-class SavedHistoryData(Contract):
-    turns: tuple[SavedHistoryItem, ...] = Field(max_length=100)
+class HistoryPage(Contract):
     next_cursor: str | None = Field(max_length=4096)
     notice: (
         Literal[
@@ -244,9 +243,44 @@ class SavedHistoryData(Contract):
     )
 
 
+class SavedHistoryData(HistoryPage):
+    turns: tuple[SavedHistoryItem, ...] = Field(max_length=100)
+
+
 class SavedHistoryEnvelope(CreateChatRequest):
     schema_version: Literal[1] = 1
     data: SavedHistoryData
+
+
+class ReviewChatSummary(Contract):
+    id: UUID
+    title: Literal["New chat"]
+    last_activity_at: datetime
+
+
+class ReviewChatPage(Contract):
+    chats: tuple[ReviewChatSummary, ...] = Field(max_length=100)
+    next_cursor: str | None = Field(max_length=4096)
+
+
+class ReviewChatEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: ReviewChatPage
+
+
+class ReviewTurn(Contract):
+    id: UUID
+    response: StructuredResponse
+    committed_at: datetime
+
+
+class ReviewTurnPage(HistoryPage):
+    turns: tuple[ReviewTurn, ...] = Field(max_length=100)
+
+
+class ReviewTurnEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: ReviewTurnPage
 
 
 class OwnScopeChoice(Contract):
@@ -642,6 +676,8 @@ PUBLIC_MODELS = (
     SavedChatEnvelope,
     SavedChatPageEnvelope,
     SavedHistoryEnvelope,
+    ReviewChatEnvelope,
+    ReviewTurnEnvelope,
     SavedRequestEnvelope,
     AdminOptionsEnvelope,
     AdminMappingRequest,

@@ -6,6 +6,8 @@ export function SavedRequestEnvelope(value: unknown): boolean;
 export function SavedChatEnvelope(value: unknown): boolean;
 export function SavedChatPageEnvelope(value: unknown): boolean;
 export function SavedHistoryEnvelope(value: unknown): boolean;
+export function ReviewChatEnvelope(value: unknown): boolean;
+export function ReviewTurnEnvelope(value: unknown): boolean;
 export function ErrorEnvelope(value: unknown): boolean;
 export function OwnAccessEnvelope(value: unknown): boolean;
 export function OwnRequestEnvelope(value: unknown): boolean;

@@ -91,21 +91,21 @@ class SavedChatAPI(SignedChatAccess):
         await self._repository.delete_saved_chat(decision, session_id)
 
 
-def build_saved_chat_api(database, verifier, authorization, clock, codec):
-    async def can_release_notice(decision, turn):
-        # Release only proven fixed, content-free notices at this configuration.
-        # Raw historical messages are independently excluded from the HTTP DTO.
-        return (
-            turn.policy_version == decision.policy_version
-            and turn.response.status != "complete"
-        )
+async def can_release_saved_notice(decision, turn):
+    """Withhold business results until a release policy can verify their grants."""
+    return (
+        turn.policy_version == decision.policy_version
+        and turn.response.status != "complete"
+    )
 
+
+def build_saved_chat_api(database, verifier, authorization, clock, codec):
     repository = ChatRepository(
         database,
         codec,
         clock=clock,
         authorization_recheck=authorization.recheck,
-        turn_access_check=can_release_notice,
+        turn_access_check=can_release_saved_notice,
     )
     return SavedChatAPI(database, verifier, authorization, clock, repository)
 
@@ -137,20 +137,24 @@ def _page(query):
         values = dict(pairs)
         size = values.get("page_size", str(DEFAULT_PAGE_SIZE))
         cursor = values.get("cursor")
-        if (
-            len(values) != len(pairs)
-            or set(values) - {"page_size", "cursor"}
-            or not 1 <= len(size) <= len(str(MAX_PAGE_SIZE))
-            or not size.isascii()
-            or not size.isdigit()
-            or str(int(size)) != size
-            or not 1 <= int(size) <= MAX_PAGE_SIZE
-            or cursor is not None
-            and not 1 <= len(cursor) <= 4096
-        ):
+        if len(values) != len(pairs) or set(values) - {"page_size", "cursor"}:
             raise ValueError()
+        return _page_values(size, cursor)
     except ValueError:
         raise ApiProblem(ErrorCode.INVALID_REQUEST) from None
+
+
+def _page_values(size, cursor):
+    if (
+        not 1 <= len(size) <= len(str(MAX_PAGE_SIZE))
+        or not size.isascii()
+        or not size.isdigit()
+        or str(int(size)) != size
+        or not 1 <= int(size) <= MAX_PAGE_SIZE
+        or cursor is not None
+        and not 1 <= len(cursor) <= 4096
+    ):
+        raise ValueError()
     return {"page_size": int(size), "cursor": cursor}
 
 

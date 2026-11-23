@@ -37,6 +37,8 @@ const names = [
   "SavedChatEnvelope",
   "SavedChatPageEnvelope",
   "SavedHistoryEnvelope",
+  "ReviewChatEnvelope",
+  "ReviewTurnEnvelope",
   "ErrorEnvelope",
   "OwnAccessEnvelope",
   "OwnRequestEnvelope",

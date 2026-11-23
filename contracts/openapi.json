@@ -2234,6 +2234,193 @@
         "title": "OwnScopeChoice",
         "type": "object"
       },
+      "ReviewChatEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ReviewChatPage"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "ReviewChatEnvelope",
+        "type": "object"
+      },
+      "ReviewChatPage": {
+        "additionalProperties": false,
+        "properties": {
+          "chats": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewChatSummary"
+            },
+            "maxItems": 100,
+            "title": "Chats",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "chats",
+          "next_cursor"
+        ],
+        "title": "ReviewChatPage",
+        "type": "object"
+      },
+      "ReviewChatSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_activity_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?(?:Z|[+-]\\d{2}:\\d{2})$",
+            "title": "Last Activity At",
+            "type": "string"
+          },
+          "title": {
+            "const": "New chat",
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "last_activity_at"
+        ],
+        "title": "ReviewChatSummary",
+        "type": "object"
+      },
+      "ReviewTurn": {
+        "additionalProperties": false,
+        "properties": {
+          "committed_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?(?:Z|[+-]\\d{2}:\\d{2})$",
+            "title": "Committed At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/StructuredResponse"
+          }
+        },
+        "required": [
+          "id",
+          "response",
+          "committed_at"
+        ],
+        "title": "ReviewTurn",
+        "type": "object"
+      },
+      "ReviewTurnEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ReviewTurnPage"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "ReviewTurnEnvelope",
+        "type": "object"
+      },
+      "ReviewTurnPage": {
+        "additionalProperties": false,
+        "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "notice": {
+            "anyOf": [
+              {
+                "const": "Some saved messages are hidden because current access does not allow them.",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notice"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewTurn"
+            },
+            "maxItems": 100,
+            "title": "Turns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "next_cursor",
+          "notice",
+          "turns"
+        ],
+        "title": "ReviewTurnPage",
+        "type": "object"
+      },
       "SavedChatData": {
         "additionalProperties": false,
         "properties": {
@@ -2437,9 +2624,9 @@
           }
         },
         "required": [
-          "turns",
           "next_cursor",
-          "notice"
+          "notice",
+          "turns"
         ],
         "title": "SavedHistoryData",
         "type": "object"

@@ -1189,6 +1189,27 @@ expires.
 Run the signed route tests with:
     .venv/Scripts/python.exe -m pytest -q tests/test_saved_chat_routes.py
 
+## Administrator conversation review
+
+Enable identity and configure the app database, audit indexes, and cursor key.
+The signed login must have the explicit `review_saved_chats` permission.
+Sign the exact method, path, and encoded query with an empty body.
+
+- `GET /v1/admin/conversations?user_id=<uuid>` lists the selected user's active
+  saved chats. Optional `since` and `until` must be paired UTC dates in
+  YYYY-MM-DD format. The range includes the start date and excludes the end date.
+  The filter applies to last activity and spans at most 366 days.
+- `GET /v1/admin/conversations/<chat-id>/turns?user_id=<uuid>` reviews turns in
+  order for that user and chat. Both routes accept `page_size` (1 to 100,
+  default 25) and `cursor`. Reuse the same user and filters on later pages.
+
+Each page requires a confirmed audit record. Review uses the administrator's
+own login. The default policy releases fixed system notices from the current
+policy. It omits past questions, protected results, temporary chats, and traces.
+
+From the repository root, run:
+    .venv/Scripts/python.exe -m pytest -q tests/test_admin_review_routes.py
+
 ## Saved turns and request recovery
 
 Use an existing owned saved chat. Sign the exact backend method, path and

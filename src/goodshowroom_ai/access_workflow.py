@@ -108,6 +108,13 @@ class AccessWorkflow:
             cursor_codec,
         )
 
+    def admin_review_service(self, cursor_codec):
+        from goodshowroom_ai.admin_review_routes import AdminReviewAPI
+
+        return AdminReviewAPI(
+            self._db, self._verifier, self._authorization, self._clock, cursor_codec
+        )
+
     def saved_turn_service(self, *, model, tracing, admission):
         from goodshowroom_ai.saved_turn_setup import build_saved_turn_api
 

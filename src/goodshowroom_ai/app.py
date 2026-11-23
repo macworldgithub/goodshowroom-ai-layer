@@ -25,6 +25,10 @@ from goodshowroom_ai.admin_management_routes import (
     update_admin_role,
     update_admin_user_access,
 )
+from goodshowroom_ai.admin_review_routes import (
+    list_review_conversations,
+    list_review_turns,
+)
 from goodshowroom_ai.admin_staff import StaffDirectory
 from goodshowroom_ai.admission import AdmissionController
 from goodshowroom_ai.api_http import install_error_handlers
@@ -60,6 +64,7 @@ def create_app(
     admin_configuration=None,
     saved_turns=None,
     saved_chats=None,
+    admin_review=None,
 ) -> FastAPI:
     """Build the app; Mongo connects only when a caller explicitly opts in."""
     configuration = settings if settings is not None else Settings()
@@ -89,6 +94,11 @@ def create_app(
                 application.state.temporary_memory = active_memory
                 application.state.saved_chats = (
                     application.state.login_workflow.saved_chat_service(
+                        application.state.cursor_codec
+                    )
+                )
+                application.state.admin_review = (
+                    application.state.login_workflow.admin_review_service(
                         application.state.cursor_codec
                     )
                 )
@@ -171,6 +181,7 @@ def create_app(
     app.state.admin_configuration = admin_configuration
     app.state.saved_turns = saved_turns
     app.state.saved_chats = saved_chats
+    app.state.admin_review = admin_review
     app.state.execution_limits = DEFAULT_LIMITS
     app.state.admission = AdmissionController(limits=DEFAULT_LIMITS)
     app.state.cursor_codec = (
@@ -226,5 +237,11 @@ def create_app(
     )
     app.add_api_route(
         "/v1/saved-chats/{chat_id}", delete_saved_chat, methods=["DELETE"]
+    )
+    app.add_api_route(
+        "/v1/admin/conversations", list_review_conversations, methods=["GET"]
+    )
+    app.add_api_route(
+        "/v1/admin/conversations/{chat_id}/turns", list_review_turns, methods=["GET"]
     )
     return app
