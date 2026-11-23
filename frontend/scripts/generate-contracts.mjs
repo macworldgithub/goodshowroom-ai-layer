@@ -33,6 +33,7 @@ const names = [
   "CreateChatRequest",
   "TurnRequest",
   "ChatResultEnvelope",
+  "SavedRequestEnvelope",
   "ErrorEnvelope",
   "OwnAccessEnvelope",
   "OwnRequestEnvelope",

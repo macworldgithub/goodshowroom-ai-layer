@@ -19,6 +19,7 @@ from goodshowroom_ai.storage.chat_turns import (
     ChatTurnPage,
     ChatTurnPosition,
     ChatTurnRecord,
+    SavedRequestStatus,
     SavedTurnView,
     TurnAttemptResult,
     TurnCommand,
@@ -40,6 +41,7 @@ from goodshowroom_ai.storage.mongo import (
     AppWriteConflict,
     AuthorizationDenied,
     SavedChatCleanupPending,
+    TurnPayloadConflict,
 )
 from goodshowroom_ai.responses import BuiltResponse
 
@@ -650,15 +652,16 @@ class ChatRepository:
                     self._require_releasable_turn(decision, session_id, existing)
                     result = TurnAttemptResult(status="committed", turn=existing)
                 else:
+                    previous = parent.last_attempt
+                    if (
+                        previous is not None
+                        and previous.request_id == command.request_id
+                        and previous.request_hash != request_hash
+                    ):
+                        raise TurnPayloadConflict("Turn request payload changed.")
                     if parent.version != command.expected_version:
                         raise AppWriteConflict("Saved-chat version changed.")
-                    previous = parent.last_attempt
                     if previous is not None:
-                        if (
-                            previous.request_id == command.request_id
-                            and previous.request_hash != request_hash
-                        ):
-                            raise AppWriteConflict("Turn request payload changed.")
                         if previous.status == "unknown":
                             result = TurnAttemptResult(status="unknown")
                         elif previous.status == "processing":
@@ -799,6 +802,66 @@ class ChatRepository:
             )
             await transaction.finish_chat_attempt(session_id, updated)
 
+    async def saved_request_status(
+        self,
+        decision: AuthorizationDecision,
+        session_id: UUID,
+        request_id: UUID,
+        *,
+        command: TurnCommand | None = None,
+    ) -> SavedRequestStatus | None:
+        """Read current status by ID without changing state or starting a turn."""
+        if (
+            type(request_id) is not UUID
+            or command is not None
+            and command.request_id != request_id
+        ):
+            raise ValueError("Invalid saved-turn request ID")
+        decision = await self._recheck_turn_decision(decision, session_id)
+        user_id = decision.principal.user_id
+        context = InternalAuthorizationContext(
+            actor_id=user_id,
+            capabilities=frozenset(
+                {
+                    StorageCapability.READ_IDENTITIES,
+                    StorageCapability.READ_LOGINS,
+                    StorageCapability.READ_POLICY,
+                    StorageCapability.READ_CHATS,
+                }
+            ),
+        )
+        request_hash = command.request_hash(user_id, session_id) if command else None
+        async with self._database.snapshot_transaction(context) as transaction:
+            now = self._now()
+            await self._require_current_turn_access(transaction, decision, now)
+            parent = await transaction.find_chat_session(session_id)
+            self._require_live_owned_record(parent, user_id, now)
+            turn = await transaction.find_chat_turn(session_id, request_id)
+            if turn is not None:
+                if request_hash is not None:
+                    self._require_same_turn(turn, request_hash)
+                self._require_releasable_turn(decision, session_id, turn)
+                result = SavedRequestStatus(status="committed", turn=turn)
+            else:
+                attempt = parent.last_attempt
+                result = None
+                if attempt is not None and attempt.request_id == request_id:
+                    if (
+                        request_hash is not None
+                        and attempt.request_hash != request_hash
+                    ):
+                        raise TurnPayloadConflict("Turn request payload changed.")
+                    state = attempt.status
+                    if (
+                        state == "committed"
+                        or state == "processing"
+                        and attempt.run_id not in self._active_runs
+                    ):
+                        state = "unknown"
+                    result = SavedRequestStatus(status=state)
+        await self._recheck_turn_decision(decision, session_id)
+        return result
+
     async def resolve_turn_request(
         self,
         decision: AuthorizationDecision,
@@ -826,7 +889,7 @@ class ChatRepository:
                 current = parent.last_attempt
                 if current is not None and current.request_id == command.request_id:
                     if current.request_hash != request_hash:
-                        raise AppWriteConflict("Turn request payload changed.")
+                        raise TurnPayloadConflict("Turn request payload changed.")
                     if current.status == "unknown":
                         recovered = TurnRecoveryResult(status="unknown")
                     elif current.status == "processing":
@@ -1074,10 +1137,10 @@ class ChatRepository:
     @staticmethod
     def _require_same_turn(turn: ChatTurnRecord, request_hash: str) -> None:
         if turn.request_hash != request_hash:
-            raise AppWriteConflict("Turn request payload changed.")
+            raise TurnPayloadConflict("Turn request payload changed.")
 
-    @staticmethod
     def _require_releasable_turn(
+        self,
         decision: AuthorizationDecision,
         session_id: UUID,
         turn: ChatTurnRecord,
@@ -1086,6 +1149,7 @@ class ChatRepository:
             turn.owner_user_id != decision.principal.user_id
             or turn.session_id != session_id
             or turn.policy_version != decision.policy_version
+            or (turn.expires_at is not None and turn.expires_at <= self._now())
         ):
             raise AuthorizationDenied("Saved-turn access is not authorized.")
 

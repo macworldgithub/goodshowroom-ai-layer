@@ -181,6 +181,24 @@ class ChatResultEnvelope(CreateChatRequest):
     data: ChatTurnData
 
 
+class SavedRequestData(Contract):
+    status: Literal["processing", "committed", "failed", "interrupted", "unknown"]
+    result: ChatTurnData | None
+
+    @model_validator(mode="after")
+    def committed_result(self):
+        if (self.status == "committed") != (self.result is not None) or (
+            self.result is not None and self.result.mode != "saved"
+        ):
+            raise ValueError("Only a committed saved turn carries a result")
+        return self
+
+
+class SavedRequestEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: SavedRequestData
+
+
 class OwnScopeChoice(Contract):
     dataset: Literal["byd-leads-new", "byd-panel"]
     sites: list[str] = Field(min_length=1, max_length=100)
@@ -571,6 +589,7 @@ class AdminSettingsEnvelope(CreateChatRequest):
 
 
 PUBLIC_MODELS = (
+    SavedRequestEnvelope,
     AdminOptionsEnvelope,
     AdminMappingRequest,
     AdminMappingEnvelope,

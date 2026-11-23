@@ -2,6 +2,7 @@
 export function CreateChatRequest(value: unknown): boolean;
 export function TurnRequest(value: unknown): boolean;
 export function ChatResultEnvelope(value: unknown): boolean;
+export function SavedRequestEnvelope(value: unknown): boolean;
 export function ErrorEnvelope(value: unknown): boolean;
 export function OwnAccessEnvelope(value: unknown): boolean;
 export function OwnRequestEnvelope(value: unknown): boolean;

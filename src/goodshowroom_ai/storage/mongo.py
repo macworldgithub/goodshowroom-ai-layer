@@ -105,6 +105,10 @@ class AppWriteConflict(RuntimeError):
     """The access-control policy version did not match the expected version."""
 
 
+class TurnPayloadConflict(AppWriteConflict):
+    """The request ID already belongs to a different turn input."""
+
+
 class RequiredAuditMissing(RuntimeError):
     """A protected access-control write did not add its required audit event."""
 

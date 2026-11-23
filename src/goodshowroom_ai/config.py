@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     openai_tracing_enabled: bool = False
     openai_tracing_include_sensitive_data: bool = False
     identity_enabled: bool = False
+    saved_turns_enabled: bool = False
+    openai_model: str = ""
+    openai_api_key: SecretStr | None = None
     identity_issuer: str = ""
     identity_audience: str = ""
     identity_key_id: str = ""

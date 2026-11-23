@@ -2,7 +2,9 @@
 
 from contextlib import asynccontextmanager
 
+from agents.models.openai_responses import OpenAIResponsesModel
 from fastapi import FastAPI
+from openai import AsyncOpenAI
 
 from goodshowroom_ai.admin_access_routes import (
     decision,
@@ -32,6 +34,7 @@ from goodshowroom_ai.execution import DEFAULT_LIMITS
 from goodshowroom_ai.login_routes import exchange, renew, revoke
 from goodshowroom_ai.login_setup import build_login_services
 from goodshowroom_ai.own_access_routes import create_request, me
+from goodshowroom_ai.saved_turn_routes import get_saved_request, post_saved_turn
 from goodshowroom_ai.storage.mongo import AppDatabase, ClientFactory
 from goodshowroom_ai.temporary import TemporaryMemoryStore
 from goodshowroom_ai.tracing import configure_tracing
@@ -49,6 +52,7 @@ def create_app(
     admin_access=None,
     admin_management=None,
     admin_configuration=None,
+    saved_turns=None,
 ) -> FastAPI:
     """Build the app; Mongo connects only when a caller explicitly opts in."""
     configuration = settings if settings is not None else Settings()
@@ -58,9 +62,12 @@ def create_app(
     async def lifespan(application: FastAPI):
         database = None
         staff_directory = None
+        model_client = None
         active_memory = temporary_memory
         application.state.app_database = None
         try:
+            if configuration.saved_turns_enabled and not configuration.identity_enabled:
+                raise ValueError("Saved turns require identity configuration.")
             if connect_app_database or configuration.identity_enabled:
                 database = await AppDatabase.connect(
                     configuration.app_mongo_uri, client_factory=client_factory
@@ -95,13 +102,39 @@ def create_app(
                 application.state.admin_management = (
                     application.state.login_workflow.admin_management_service()
                 )
+            if configuration.saved_turns_enabled:
+                key = configuration.openai_api_key
+                if (
+                    key is None
+                    or not key.get_secret_value().strip()
+                    or not configuration.openai_model.strip()
+                ):
+                    raise ValueError("Saved turns require model configuration.")
+                model_client = AsyncOpenAI(
+                    api_key=key.get_secret_value(),
+                    base_url="https://api.openai.com/v1",
+                    max_retries=0,
+                )
+                application.state.saved_turns = (
+                    application.state.login_workflow.saved_turn_service(
+                        model=OpenAIResponsesModel(
+                            configuration.openai_model, model_client
+                        ),
+                        tracing=tracing,
+                        admission=application.state.admission,
+                    )
+                )
             if active_memory is not None:
                 await active_memory.start()
             yield
         finally:
             try:
-                if staff_directory is not None:
-                    await staff_directory.close()
+                try:
+                    if model_client is not None:
+                        await model_client.close()
+                finally:
+                    if staff_directory is not None:
+                        await staff_directory.close()
             finally:
                 try:
                     if database is not None:
@@ -124,6 +157,7 @@ def create_app(
     app.state.admin_access = admin_access
     app.state.admin_management = admin_management
     app.state.admin_configuration = admin_configuration
+    app.state.saved_turns = saved_turns
     app.state.execution_limits = DEFAULT_LIMITS
     app.state.admission = AdmissionController(limits=DEFAULT_LIMITS)
     app.state.cursor_codec = (
@@ -164,4 +198,12 @@ def create_app(
     )
     app.add_api_route("/v1/admin/settings", get_admin_settings, methods=["GET"])
     app.add_api_route("/v1/admin/settings", patch_admin_settings, methods=["PATCH"])
+    app.add_api_route(
+        "/v1/saved-chats/{chat_id}/turns", post_saved_turn, methods=["POST"]
+    )
+    app.add_api_route(
+        "/v1/saved-chats/{chat_id}/requests/{request_id}",
+        get_saved_request,
+        methods=["GET"],
+    )
     return app

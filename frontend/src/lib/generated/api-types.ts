@@ -898,6 +898,30 @@ export interface components {
             /** Tools */
             tools: string[];
         };
+        /** SavedRequestData */
+        SavedRequestData: {
+            result: components["schemas"]["ChatTurnData"] | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "processing" | "committed" | "failed" | "interrupted" | "unknown";
+        };
+        /** SavedRequestEnvelope */
+        SavedRequestEnvelope: {
+            data: components["schemas"]["SavedRequestData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /** SiteConfiguration */
         SiteConfiguration: {
             /**

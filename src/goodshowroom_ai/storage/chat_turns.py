@@ -297,6 +297,17 @@ class TurnCommitResult(_TurnContract):
         return self
 
 
+class SavedRequestStatus(_TurnContract):
+    status: Literal["processing", "committed", "failed", "interrupted", "unknown"]
+    turn: ChatTurnRecord | None = None
+
+    @model_validator(mode="after")
+    def committed_record(self):
+        if (self.status == "committed") != (self.turn is not None):
+            raise ValueError("Only a committed status carries a turn")
+        return self
+
+
 class TurnRecoveryResult(_TurnContract):
     status: Literal["committed", "processing", "retry_allowed", "unknown"]
     turn: ChatTurnRecord | None = None

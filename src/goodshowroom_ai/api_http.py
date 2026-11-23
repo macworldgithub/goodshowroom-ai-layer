@@ -35,6 +35,7 @@ from goodshowroom_ai.storage.mongo import (
     AppWriteConflict,
     AuthorizationDenied,
     SavedChatCleanupPending,
+    TurnPayloadConflict,
 )
 
 SAFE_HEADERS = {
@@ -228,6 +229,8 @@ def install_error_handlers(app: FastAPI) -> None:
             code = ErrorCode.CLEANUP_PENDING
         elif isinstance(error, AppDatabaseUnavailable):
             code = ErrorCode.PERSISTENCE_FAILED
+        elif isinstance(error, TurnPayloadConflict):
+            code = ErrorCode.IDEMPOTENCY_CONFLICT
         elif isinstance(error, AppWriteConflict):
             code = ErrorCode.VERSION_CONFLICT
         elif isinstance(error, HTTPException):

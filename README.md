@@ -1165,6 +1165,34 @@ from GET /v1/admin/settings. Change an allowed site's time zone and send both
 versions in PATCH. Expect the response to show the new setting and version.
 Repeat the original request to check for a 409 version conflict.
 
+## Saved turns and request recovery
+
+Use an existing owned saved chat. Sign the exact backend method, path and
+body with the existing server-only identity assertion. The save is
+non-streaming.
+
+- POST /v1/saved-chats/{id}/turns accepts request_id, expected_version and
+  message. An identical committed retry returns the same result. A changed
+  payload under the same recorded request ID returns an idempotency conflict.
+- GET /v1/saved-chats/{id}/requests/{request_id} reads the current state by ID
+  with an empty body. It returns processing, committed, failed, interrupted
+  or unknown. Only a currently releasable committed turn includes a result.
+  Recovery reads never start a model call or modify the chat.
+- Keep the request ID and original body after an uncertain save. Check status
+  first. A missing request returns 404. The repository keeps committed turns
+  and the single latest attempt record. Older unsuccessful attempts can be
+  absent after a newer attempt replaces that record.
+
+Startup enables the service only when SAVED_TURNS_ENABLED=true and the
+existing identity, OPENAI_MODEL and OPENAI_API_KEY settings are present.
+Prepare the app's chat, turn and audit indexes before use. The default
+startup uses trusted notice responses and omits unreviewed saved history.
+It uses no operational data connection. Approved business results and
+history need the separate source and disclosure review.
+
+Review the signed routes with:
+    .venv/Scripts/python.exe -m pytest -q tests/test_saved_turn_routes.py
+
 ## Q-01 offline evaluation
 
 The versioned `tests/q01_evaluation.py` corpus contains invented Q-01 questions,

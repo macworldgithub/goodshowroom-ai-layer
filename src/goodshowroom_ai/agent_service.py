@@ -11,12 +11,16 @@ from collections.abc import Awaitable, Callable
 from typing import Literal, Protocol
 
 from agents import Agent, RunHooks, Runner, function_tool
+from agents.exceptions import AgentsException
 from agents.models.interface import Model
 from agents.run_config import ModelInputData
+from openai import OpenAIError
 from pydantic import Field
 
 from goodshowroom_ai.admission import AdmissionController
 from goodshowroom_ai.agent_context import AgentHistory, build_context, context_size
+from goodshowroom_ai.api_contracts import ErrorCode
+from goodshowroom_ai.api_http import ApiProblem
 from goodshowroom_ai.authorization import (
     AccessDenied,
     AuthorizationService,
@@ -36,8 +40,8 @@ from goodshowroom_ai.responses import (
     ResponseInvalid,
 )
 from goodshowroom_ai.storage.chat_repository import ChatRepository
-from goodshowroom_ai.storage.mongo import AuthorizationDenied
 from goodshowroom_ai.storage.chat_turns import ChatTurnRecord, TurnCommand
+from goodshowroom_ai.storage.mongo import AuthorizationDenied
 from goodshowroom_ai.tracing import TracingRuntime
 
 _INSTRUCTIONS = """You are GoodShowroom.PrimaryAgent, a read-only question interpreter.
@@ -305,6 +309,25 @@ class PrimaryAgentService:
             state = None
         return history.model_copy(update={"turns": tuple(allowed), "state": state})
 
+    async def recover_saved_request(self, principal, context, command=None):
+        if context.mode != "saved" or context.owner_id != principal.user_id:
+            raise AccessDenied("Access is not allowed.")
+        decision = await self._authorization.authorize(principal, self._action(context))
+        status = await self._repository.saved_request_status(
+            decision, context.session_id, context.request_id, command=command
+        )
+        if status is None:
+            return None, None
+        if status.turn is None:
+            return status.status, None
+        built = BuiltResponse(
+            request_id=context.request_id, response=status.turn.response
+        )
+        checked = await self._release(principal, context, built, decision)
+        return status.status, AgentTurnOutcome(
+            status="committed", built=checked, turn=status.turn
+        )
+
     async def run_turn(
         self, principal: Principal, context: ResponseContext, command: TurnCommand
     ) -> AgentTurnOutcome:
@@ -563,13 +586,16 @@ class PrimaryAgentService:
 
         config.call_model_input_filter = filter_input
         budget.claim_attempt()
-        result = await self._runner(
-            agent,
-            input=items,
-            run_config=config,
-            max_turns=2,
-            hooks=_RunChecks(budget, recheck, overhead),
-        )
+        try:
+            result = await self._runner(
+                agent,
+                input=items,
+                run_config=config,
+                max_turns=2,
+                hooks=_RunChecks(budget, recheck, overhead),
+            )
+        except (AgentsException, OpenAIError):
+            raise ApiProblem(ErrorCode.MODEL_FAILURE) from None
         if built is not None:
             return built  # All SDK/model prose and intermediate items are discarded.
         output = result.final_output

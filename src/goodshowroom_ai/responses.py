@@ -24,6 +24,7 @@ from goodshowroom_ai.disclosure import DisclosureResult, DisclosureService
 from goodshowroom_ai.execution import MAX_WIRE_BYTES
 from goodshowroom_ai.metrics import MetricRequest
 from goodshowroom_ai.normalization import LeadAdapterConfig
+from goodshowroom_ai.operational import SourceUnavailable
 from goodshowroom_ai.operational_models import Q01_TOOL
 from goodshowroom_ai.storage.models import utc_datetime
 
@@ -293,7 +294,7 @@ class ResponseBuilder:
     def __init__(
         self,
         *,
-        disclosure: DisclosureService,
+        disclosure: DisclosureService | None,
         authorization: AuthorizationService,
         config: LeadAdapterConfig,
     ):
@@ -317,6 +318,8 @@ class ResponseBuilder:
             raise AccessDenied("Access is not allowed.")
         action = self._action(context, request)
         decision = await self._authorization.authorize(principal, action)
+        if self._disclosure is None:
+            raise SourceUnavailable("The data source is unavailable.")
         result = await self._disclosure.evaluate(principal, request)
         try:
             if not isinstance(result, DisclosureResult):
