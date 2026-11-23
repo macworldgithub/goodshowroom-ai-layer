@@ -199,6 +199,56 @@ class SavedRequestEnvelope(CreateChatRequest):
     data: SavedRequestData
 
 
+class SavedChatSummary(Contract):
+    id: UUID
+    title: Literal["New chat"]
+    version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+    last_activity_at: datetime
+
+
+class SavedChatData(SavedChatSummary):
+    mode: Literal["saved"] = "saved"
+
+
+class SavedChatEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: SavedChatData
+
+
+class SavedChatPageData(Contract):
+    chats: tuple[SavedChatSummary, ...] = Field(max_length=100)
+    next_cursor: str | None = Field(max_length=4096)
+
+
+class SavedChatPageEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: SavedChatPageData
+
+
+class SavedHistoryItem(Contract):
+    id: UUID
+    sequence: int = Field(ge=1, le=MAX_SAFE_INTEGER)
+    user_message: None = None
+    response: StructuredResponse
+    committed_at: datetime
+
+
+class SavedHistoryData(Contract):
+    turns: tuple[SavedHistoryItem, ...] = Field(max_length=100)
+    next_cursor: str | None = Field(max_length=4096)
+    notice: (
+        Literal[
+            "Some saved messages are hidden because current access does not allow them."
+        ]
+        | None
+    )
+
+
+class SavedHistoryEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: SavedHistoryData
+
+
 class OwnScopeChoice(Contract):
     dataset: Literal["byd-leads-new", "byd-panel"]
     sites: list[str] = Field(min_length=1, max_length=100)
@@ -589,6 +639,9 @@ class AdminSettingsEnvelope(CreateChatRequest):
 
 
 PUBLIC_MODELS = (
+    SavedChatEnvelope,
+    SavedChatPageEnvelope,
+    SavedHistoryEnvelope,
     SavedRequestEnvelope,
     AdminOptionsEnvelope,
     AdminMappingRequest,

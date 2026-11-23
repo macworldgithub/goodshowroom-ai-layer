@@ -97,6 +97,17 @@ class AccessWorkflow:
             self._db, self._verifier, self._authorization, self._clock, self
         )
 
+    def saved_chat_service(self, cursor_codec):
+        from goodshowroom_ai.saved_chat_routes import build_saved_chat_api
+
+        return build_saved_chat_api(
+            self._db,
+            self._verifier,
+            self._authorization,
+            self._clock,
+            cursor_codec,
+        )
+
     def saved_turn_service(self, *, model, tracing, admission):
         from goodshowroom_ai.saved_turn_setup import build_saved_turn_api
 

@@ -2234,6 +2234,284 @@
         "title": "OwnScopeChoice",
         "type": "object"
       },
+      "SavedChatData": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_activity_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?(?:Z|[+-]\\d{2}:\\d{2})$",
+            "title": "Last Activity At",
+            "type": "string"
+          },
+          "mode": {
+            "const": "saved",
+            "default": "saved",
+            "title": "Mode",
+            "type": "string"
+          },
+          "title": {
+            "const": "New chat",
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "version",
+          "last_activity_at",
+          "mode"
+        ],
+        "title": "SavedChatData",
+        "type": "object"
+      },
+      "SavedChatEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SavedChatData"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "SavedChatEnvelope",
+        "type": "object"
+      },
+      "SavedChatPageData": {
+        "additionalProperties": false,
+        "properties": {
+          "chats": {
+            "items": {
+              "$ref": "#/components/schemas/SavedChatSummary"
+            },
+            "maxItems": 100,
+            "title": "Chats",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "chats",
+          "next_cursor"
+        ],
+        "title": "SavedChatPageData",
+        "type": "object"
+      },
+      "SavedChatPageEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SavedChatPageData"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "SavedChatPageEnvelope",
+        "type": "object"
+      },
+      "SavedChatSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_activity_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?(?:Z|[+-]\\d{2}:\\d{2})$",
+            "title": "Last Activity At",
+            "type": "string"
+          },
+          "title": {
+            "const": "New chat",
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "version",
+          "last_activity_at"
+        ],
+        "title": "SavedChatSummary",
+        "type": "object"
+      },
+      "SavedHistoryData": {
+        "additionalProperties": false,
+        "properties": {
+          "next_cursor": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "notice": {
+            "anyOf": [
+              {
+                "const": "Some saved messages are hidden because current access does not allow them.",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notice"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/SavedHistoryItem"
+            },
+            "maxItems": 100,
+            "title": "Turns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "turns",
+          "next_cursor",
+          "notice"
+        ],
+        "title": "SavedHistoryData",
+        "type": "object"
+      },
+      "SavedHistoryEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SavedHistoryData"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "SavedHistoryEnvelope",
+        "type": "object"
+      },
+      "SavedHistoryItem": {
+        "additionalProperties": false,
+        "properties": {
+          "committed_at": {
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?(?:Z|[+-]\\d{2}:\\d{2})$",
+            "title": "Committed At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/StructuredResponse"
+          },
+          "sequence": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "user_message": {
+            "default": null,
+            "title": "User Message",
+            "type": "null"
+          }
+        },
+        "required": [
+          "id",
+          "sequence",
+          "user_message",
+          "response",
+          "committed_at"
+        ],
+        "title": "SavedHistoryItem",
+        "type": "object"
+      },
       "SavedRequestData": {
         "additionalProperties": false,
         "properties": {

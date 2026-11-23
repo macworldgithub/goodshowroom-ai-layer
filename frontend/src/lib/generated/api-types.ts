@@ -898,6 +898,134 @@ export interface components {
             /** Tools */
             tools: string[];
         };
+        /** SavedChatData */
+        SavedChatData: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Last Activity At
+             * Format: date-time
+             */
+            last_activity_at: string;
+            /**
+             * Mode
+             * @default saved
+             * @constant
+             */
+            mode: "saved";
+            /**
+             * Title
+             * @constant
+             */
+            title: "New chat";
+            /** Version */
+            version: number;
+        };
+        /** SavedChatEnvelope */
+        SavedChatEnvelope: {
+            data: components["schemas"]["SavedChatData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** SavedChatPageData */
+        SavedChatPageData: {
+            /** Chats */
+            chats: components["schemas"]["SavedChatSummary"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** SavedChatPageEnvelope */
+        SavedChatPageEnvelope: {
+            data: components["schemas"]["SavedChatPageData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** SavedChatSummary */
+        SavedChatSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Last Activity At
+             * Format: date-time
+             */
+            last_activity_at: string;
+            /**
+             * Title
+             * @constant
+             */
+            title: "New chat";
+            /** Version */
+            version: number;
+        };
+        /** SavedHistoryData */
+        SavedHistoryData: {
+            /** Next Cursor */
+            next_cursor: string | null;
+            /** Notice */
+            notice: "Some saved messages are hidden because current access does not allow them." | null;
+            /** Turns */
+            turns: components["schemas"]["SavedHistoryItem"][];
+        };
+        /** SavedHistoryEnvelope */
+        SavedHistoryEnvelope: {
+            data: components["schemas"]["SavedHistoryData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** SavedHistoryItem */
+        SavedHistoryItem: {
+            /**
+             * Committed At
+             * Format: date-time
+             */
+            committed_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            response: components["schemas"]["StructuredResponse"];
+            /** Sequence */
+            sequence: number;
+            /**
+             * User Message
+             * @default null
+             */
+            user_message: null;
+        };
         /** SavedRequestData */
         SavedRequestData: {
             result: components["schemas"]["ChatTurnData"] | null;

@@ -27,14 +27,13 @@ from goodshowroom_ai.storage.models import utc_datetime
 from goodshowroom_ai.storage.mongo import AppDatabaseUnavailable
 
 
-class SavedTurnAPI:
-    def __init__(self, database, verifier, agent, clock):
+class SignedChatAccess:
+    def __init__(self, database, verifier, clock):
         self._database = database
         self._verifier = verifier
-        self._agent = agent
         self._clock = clock
 
-    async def principal(self, token, method, path, body):
+    async def principal(self, token, method, path, body, *, query=b""):
         async with self._database.snapshot_transaction(
             OwnAccessService._context(token)
         ) as tx:
@@ -45,6 +44,7 @@ class SavedTurnAPI:
                     method=method,
                     path=path,
                     body=body,
+                    query=query,
                     load_login=tx.get_login,
                     now=utc_datetime(self._clock()),
                 )
@@ -57,6 +57,12 @@ class SavedTurnAPI:
             login_id=UUID(claims["login_session_id"]),
             generation=claims["generation"],
         )
+
+
+class SavedTurnAPI(SignedChatAccess):
+    def __init__(self, database, verifier, agent, clock):
+        super().__init__(database, verifier, clock)
+        self._agent = agent
 
     async def execute(self, principal, context, command):
         try:

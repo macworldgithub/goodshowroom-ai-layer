@@ -419,6 +419,14 @@ def test_openapi_export_is_offline_empty_path_and_public_only():
     document = public_openapi()
     schemas = document["components"]["schemas"]
     expected_components = {
+        "SavedChatSummary",
+        "SavedChatData",
+        "SavedChatEnvelope",
+        "SavedChatPageData",
+        "SavedChatPageEnvelope",
+        "SavedHistoryItem",
+        "SavedHistoryData",
+        "SavedHistoryEnvelope",
         "SavedRequestData",
         "SavedRequestEnvelope",
         "AdminChoiceScope",

@@ -50,6 +50,10 @@ _ACTIVE_RUNS: set[UUID] = set()
 _MAX_DELETE_TURN_BATCHES_PER_REQUEST = 10
 
 
+class SavedChatUnavailable(AuthorizationDenied):
+    """Saved chat is unavailable to this owner."""
+
+
 class ChatRepository:
     """Own saved-chat persistence, history reads, review and deletion."""
 
@@ -90,6 +94,19 @@ class ChatRepository:
         mode: str = "saved",
     ) -> ChatSessionRecord:
         """Create or recover a session for this owner and request UUID only."""
+        record, _ = await self._create_saved_chat(
+            decision, request_id, mode, check_login=False
+        )
+        return record
+
+    async def create_saved_chat_with_status(
+        self, decision: AuthorizationDecision, request_id: UUID
+    ) -> tuple[ChatSessionRecord, bool]:
+        return await self._create_saved_chat(
+            decision, request_id, "saved", check_login=True
+        )
+
+    async def _create_saved_chat(self, decision, request_id, mode, *, check_login):
         self._require_decision(decision, action="chat")
         if mode != "saved":
             raise AuthorizationDenied("Saved-chat access is not authorized.")
@@ -97,13 +114,16 @@ class ChatRepository:
             raise AuthorizationDenied("Saved-chat access is not authorized.")
         now = self._now()
         user_id = decision.principal.user_id
-        context = self._context(user_id, write=True)
+        context = self._context(user_id, write=True, read_login=check_login)
         try:
             async with self._database.transaction(context) as transaction:
-                await transaction.require_chat_access(decision.policy_version)
+                if check_login:
+                    await self._require_current_turn_access(transaction, decision, now)
+                else:
+                    await transaction.require_chat_access(decision.policy_version)
                 current = await transaction.find_chat_session_by_request(request_id)
                 if current is not None:
-                    return self._require_live_owned_record(current, user_id, now)
+                    return self._require_live_owned_record(current, user_id, now), False
                 record = ChatSessionRecord(
                     id=uuid4(),
                     owner_user_id=user_id,
@@ -116,13 +136,15 @@ class ChatRepository:
                     last_activity_at=now,
                 )
                 await transaction.insert_chat_session(record)
-                return record
+                return record, True
         except AppWriteConflict as conflict:
             # A concurrent identical create may win the unique owner/request index.
             # Recover with a fresh read transaction; never replay the write blindly.
-            recovered = await self._recover_creation(decision, request_id, user_id)
+            recovered = await self._recover_creation(
+                decision, request_id, user_id, check_login=check_login
+            )
             if recovered is not None:
-                return recovered
+                return recovered, False
             raise conflict
 
     async def list_saved_chats(
@@ -422,13 +444,13 @@ class ChatRepository:
         )
         context = self._deletion_context(owner_user_id)
         now = self._now()
-        async with self._database.saved_turn_transaction(context) as transaction:
-            await self._require_current_turn_access(transaction, decision, now)
-            parent = await transaction.mark_chat_deleting(session_id, now=now)
-        if parent is None:
-            return
-
         try:
+            async with self._database.saved_turn_transaction(context) as transaction:
+                await self._require_current_turn_access(transaction, decision, now)
+                parent = await transaction.mark_chat_deleting(session_id, now=now)
+            if parent is None:
+                return
+
             for _ in range(_MAX_DELETE_TURN_BATCHES_PER_REQUEST):
                 await self._recheck_saved_history_decision(
                     decision, action="delete_chat", owner_user_id=owner_user_id
@@ -1432,10 +1454,17 @@ class ChatRepository:
         decision: AuthorizationDecision,
         request_id: UUID,
         user_id: UUID,
+        *,
+        check_login: bool = False,
     ) -> ChatSessionRecord | None:
-        context = self._context(user_id, write=False)
+        context = self._context(user_id, write=False, read_login=check_login)
         async with self._database.transaction(context) as transaction:
-            await transaction.require_chat_access(decision.policy_version)
+            if check_login:
+                await self._require_current_turn_access(
+                    transaction, decision, self._now()
+                )
+            else:
+                await transaction.require_chat_access(decision.policy_version)
             current = await transaction.find_chat_session_by_request(request_id)
         if current is None:
             return None
@@ -1451,11 +1480,13 @@ class ChatRepository:
             or record.status != "active"
             or (record.expires_at is not None and record.expires_at <= now)
         ):
-            raise AuthorizationDenied("Saved-chat access is not authorized.")
+            raise SavedChatUnavailable("Saved-chat access is not authorized.")
         return record
 
     @staticmethod
-    def _context(user_id: UUID, *, write: bool) -> InternalAuthorizationContext:
+    def _context(
+        user_id: UUID, *, write: bool, read_login: bool = False
+    ) -> InternalAuthorizationContext:
         capabilities = {
             StorageCapability.READ_IDENTITIES,
             StorageCapability.READ_POLICY,
@@ -1463,6 +1494,8 @@ class ChatRepository:
         }
         if write:
             capabilities.add(StorageCapability.WRITE_CHATS)
+        if read_login:
+            capabilities.add(StorageCapability.READ_LOGINS)
         return InternalAuthorizationContext(
             actor_id=user_id,
             capabilities=frozenset(capabilities),

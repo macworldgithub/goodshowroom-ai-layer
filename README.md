@@ -1165,6 +1165,30 @@ from GET /v1/admin/settings. Change an allowed site's time zone and send both
 versions in PATCH. Expect the response to show the new setting and version.
 Repeat the original request to check for a 409 version conflict.
 
+## Saved-chat management
+
+These routes use the current login and the saved-chat permissions. Sign the
+exact method, path, raw query string, and raw body on the server. Enable
+IDENTITY_ENABLED and configure the app database and cursor encryption key.
+
+- POST /v1/saved-chats accepts a UUID request_id. The first request returns
+  201. The same owner can repeat that request and get the existing chat with 200.
+- GET /v1/saved-chats lists the owner's active chats.
+- GET /v1/saved-chats/{id}/turns lists visible turns. It returns 404 for
+  missing, deleted, or other users' chats. The default configuration shows
+  fixed notices from the current policy. Historical user text is always null.
+- DELETE /v1/saved-chats/{id} returns 204 after cleanup. It also returns 204
+  for a missing chat or a chat owned by someone else. If cleanup is pending,
+  the route returns 503. Repeat the same DELETE to resume cleanup.
+
+Both list routes accept page_size (1 to 100, default 25) and cursor.
+Send the returned next_cursor unchanged to get the next page. Stop when it
+is null. Read from the first page again if the policy changes or the cursor
+expires.
+
+Run the signed route tests with:
+    .venv/Scripts/python.exe -m pytest -q tests/test_saved_chat_routes.py
+
 ## Saved turns and request recovery
 
 Use an existing owned saved chat. Sign the exact backend method, path and

@@ -33,6 +33,7 @@ class AdmissionController:
         self._access_requests: dict[UUID, deque[float]] = {}
         self._admin_requests: dict[UUID, deque[float]] = {}
         self._saved_status_requests: dict[UUID, deque[float]] = {}
+        self._saved_chat_requests: dict[UUID, deque[float]] = {}
 
     async def admit_access_request(self, user_id: UUID):
         """Rate-limit an already authenticated user before access mutations."""
@@ -41,6 +42,9 @@ class AdmissionController:
     async def admit_admin_request(self, user_id: UUID):
         """Limit administrator operations separately from own-access requests."""
         await self._admit_access_window(user_id, self._admin_requests)
+
+    async def admit_saved_chat(self, user_id: UUID):
+        await self._admit_access_window(user_id, self._saved_chat_requests)
 
     async def admit_saved_status(self, user_id: UUID):
         await self._admit_access_window(user_id, self._saved_status_requests)

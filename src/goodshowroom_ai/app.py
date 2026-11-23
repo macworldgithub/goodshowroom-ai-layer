@@ -34,6 +34,12 @@ from goodshowroom_ai.execution import DEFAULT_LIMITS
 from goodshowroom_ai.login_routes import exchange, renew, revoke
 from goodshowroom_ai.login_setup import build_login_services
 from goodshowroom_ai.own_access_routes import create_request, me
+from goodshowroom_ai.saved_chat_routes import (
+    create_saved_chat,
+    delete_saved_chat,
+    list_saved_chats,
+    list_saved_history,
+)
 from goodshowroom_ai.saved_turn_routes import get_saved_request, post_saved_turn
 from goodshowroom_ai.storage.mongo import AppDatabase, ClientFactory
 from goodshowroom_ai.temporary import TemporaryMemoryStore
@@ -53,6 +59,7 @@ def create_app(
     admin_management=None,
     admin_configuration=None,
     saved_turns=None,
+    saved_chats=None,
 ) -> FastAPI:
     """Build the app; Mongo connects only when a caller explicitly opts in."""
     configuration = settings if settings is not None else Settings()
@@ -80,6 +87,11 @@ def create_app(
                     active_memory,
                 ) = build_login_services(configuration, database, active_memory)
                 application.state.temporary_memory = active_memory
+                application.state.saved_chats = (
+                    application.state.login_workflow.saved_chat_service(
+                        application.state.cursor_codec
+                    )
+                )
                 application.state.own_access = (
                     application.state.login_workflow.own_access_service(
                         application.state.admission
@@ -158,6 +170,7 @@ def create_app(
     app.state.admin_management = admin_management
     app.state.admin_configuration = admin_configuration
     app.state.saved_turns = saved_turns
+    app.state.saved_chats = saved_chats
     app.state.execution_limits = DEFAULT_LIMITS
     app.state.admission = AdmissionController(limits=DEFAULT_LIMITS)
     app.state.cursor_codec = (
@@ -205,5 +218,13 @@ def create_app(
         "/v1/saved-chats/{chat_id}/requests/{request_id}",
         get_saved_request,
         methods=["GET"],
+    )
+    app.add_api_route("/v1/saved-chats", create_saved_chat, methods=["POST"])
+    app.add_api_route("/v1/saved-chats", list_saved_chats, methods=["GET"])
+    app.add_api_route(
+        "/v1/saved-chats/{chat_id}/turns", list_saved_history, methods=["GET"]
+    )
+    app.add_api_route(
+        "/v1/saved-chats/{chat_id}", delete_saved_chat, methods=["DELETE"]
     )
     return app
