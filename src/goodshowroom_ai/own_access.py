@@ -8,7 +8,10 @@ import jwt
 
 from goodshowroom_ai.authorization import AccessDenied
 from goodshowroom_ai.identity import IdentityDenied
-from goodshowroom_ai.storage.access_requests import AccessRequestRecord, scope_within
+from goodshowroom_ai.storage.access_requests import (
+    AccessRequestRecord,
+    role_allows_scope,
+)
 from goodshowroom_ai.storage.models import (
     AppAuditEvent,
     InternalAuthorizationContext,
@@ -75,15 +78,7 @@ class OwnAccessService:
         sites = None
         if user.approval_status == "approved":
             role = await tx.get_role(user.role_id)
-            if (
-                role is None
-                or not role.active
-                or not user.scope_limit
-                or any(
-                    not any(scope_within(scope, allowed) for allowed in role.grants)
-                    for scope in user.scope_limit
-                )
-            ):
+            if role is None or not role_allows_scope(role, user.scope_limit):
                 raise AccessDenied("Access is not allowed.")
             sites = await tx.get_setting("sites")
         await self._verify(tx, token, method, path)

@@ -205,7 +205,7 @@ async def test_login_exchange_requires_parent_and_replay_does_not_extend_lease()
 
     retry_at = NOW + timedelta(minutes=3)
     async with database.transaction(login_context(actor_id)) as transaction:
-        await transaction.advance_access_control_fence(POLICY_VERSION + 1)
+        await transaction.advance_access_control_fence(POLICY_VERSION)
         replayed = await transaction.exchange_login(original, retry_at)
         await transaction.append_required_audit(audit(actor_id, original.id))
 

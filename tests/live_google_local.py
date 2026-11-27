@@ -14,14 +14,13 @@ from datetime import UTC, datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from dotenv import dotenv_values
-from pydantic import TypeAdapter
 from pymongo import AsyncMongoClient
 import uvicorn
 
 from goodshowroom_ai.app import create_app
 from goodshowroom_ai.config import Settings
-from goodshowroom_ai.storage.identities import Grant
-from tests.test_identity_storage import role_record, selected_grant
+from goodshowroom_ai.storage.mongo import AppDatabase
+from tests.test_identity_storage import role_record
 from tests.live_local_ports import TestPortUnavailable, reserve_loopback
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -91,8 +90,24 @@ async def main():
             frontend_reservations.append(reserve_loopback(address, 3000))
         await raw.test_ownership.insert_one(MARKER)
         owns = True
-        role = role_record(active=True, capabilities=frozenset({"manage_access"}))
-        scope = TypeAdapter(tuple[Grant, ...]).dump_json((selected_grant(),)).decode()
+        app_db = await AppDatabase.connect(URI)
+        try:
+            await app_db.initialize_indexes()
+            await app_db.initialize_identity_indexes()
+            await app_db.initialize_access_request_indexes()
+            await app_db.initialize_login_indexes()
+        finally:
+            await app_db.close()
+        capabilities = frozenset(
+            {"manage_access", "manage_settings", "review_saved_chats"}
+        )
+        role = role_record(
+            name_key="test-administrator",
+            active=True,
+            grants=(),
+            capabilities=capabilities,
+            delegation_grants=(),
+        )
         await raw.roles.insert_one(role.document())
         role_created = True
         await raw.app_settings.insert_one(
@@ -135,7 +150,7 @@ async def main():
                 else "not-this-account@example.test"
             ),
             identity_bootstrap_role_id=str(role.id),
-            identity_bootstrap_scope=scope,
+            identity_bootstrap_scope="[]",
         )
         app = create_app(settings)
 
@@ -148,6 +163,47 @@ async def main():
                 "/v1/internal/login/revoke",
             }:
                 print("Local login route status:", response.status_code, flush=True)
+            if (
+                scenario == "bootstrap"
+                and request.url.path == "/v1/internal/login/exchange"
+                and response.status_code == 200
+            ):
+                bound = await raw.users.find_one(
+                    {"email_key": test_email.lower()},
+                    {
+                        "approval_status": 1,
+                        "role_id": 1,
+                        "scope_limit": 1,
+                        "provider_account_id": 1,
+                    },
+                )
+                control = await raw.app_settings.find_one({"_id": "access_control"})
+                audit = (
+                    await raw.audit_events.find_one(
+                        {"actor_id": bound["_id"]}, {"_id": 1}
+                    )
+                    if bound
+                    else None
+                )
+                if (
+                    bound
+                    and bound["approval_status"] == "approved"
+                    and bound["role_id"] == str(role.id)
+                    and bound["scope_limit"] == []
+                    and bound.get("provider_account_id")
+                    and control
+                    and control.get("bootstrap_complete") is True
+                    and audit
+                ):
+                    print(
+                        "PASS: named test administrator bound with empty business scope and an audit record.",
+                        flush=True,
+                    )
+                else:
+                    print(
+                        "FAIL: named test administrator readback did not match.",
+                        flush=True,
+                    )
             return response
 
         server = uvicorn.Server(

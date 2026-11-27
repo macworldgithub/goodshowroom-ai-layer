@@ -7,8 +7,14 @@ Exchange can create a login binding in the same transaction as identity changes.
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from goodshowroom_ai.authorization import AccessDenied, Principal, ProtectedAction
-from goodshowroom_ai.storage.access_requests import scope_within
+from goodshowroom_ai.authorization import (
+    AccessDenied,
+    Principal,
+    ProtectedAction,
+    grant_authority,
+    grantable_capabilities,
+)
+from goodshowroom_ai.storage.access_requests import role_allows_scope, scope_within
 from goodshowroom_ai.storage.identities import Grant, UserRecord
 from goodshowroom_ai.storage.logins import LoginRecord
 from goodshowroom_ai.storage.models import (
@@ -74,8 +80,6 @@ class AccessWorkflow:
         ):
             raise ValueError("Explicit bootstrap role and scope are required")
         bootstrap_scope = _validated_scope(bootstrap_scope)
-        if not bootstrap_scope:
-            raise ValueError("Explicit bootstrap role and scope are required")
         self._bootstrap_role_id, self._bootstrap_scope = (
             bootstrap_role_id,
             bootstrap_scope,
@@ -244,7 +248,11 @@ class AccessWorkflow:
                     raise AccessDenied("Access is not allowed.")
                 if bootstrap:
                     role = await tx.get_role(self._bootstrap_role_id)
-                    if role is None or "manage_access" not in role.capabilities:
+                    if (
+                        role is None
+                        or "manage_access" not in role.capabilities
+                        or not role_allows_scope(role, self._bootstrap_scope)
+                    ):
                         raise AccessDenied("Access is not allowed.")
                     if pre is not None and (
                         not pre.available(now)
@@ -377,16 +385,14 @@ class AccessWorkflow:
                 role = await tx.get_role(role_id)
                 if (
                     role is None
-                    or not role.active
-                    or not role.capabilities <= decision.snapshot.role.capabilities
-                    or not scope
-                    or any(
-                        not any(scope_within(g, a) for a in role.grants) for g in scope
-                    )
+                    or role.delegation_grants is not None
+                    or not role.capabilities
+                    <= grantable_capabilities(decision.snapshot)
+                    or not role_allows_scope(role, scope)
                     or any(
                         not any(
                             scope_within(g, a)
-                            for a in decision.snapshot.user.scope_limit
+                            for a in grant_authority(decision.snapshot)
                         )
                         for g in scope
                     )

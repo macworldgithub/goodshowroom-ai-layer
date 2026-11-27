@@ -230,9 +230,12 @@ class AssertionVerifier:
                         session.valid(now)
                         or (
                             allow_revoked_for_logout
-                            and session.revoked_at is not None
-                            and session.created_at <= session.revoked_at <= now
-                            and now < min(session.expires_at, session.auth_expires_at)
+                            and session.created_at
+                            <= now
+                            < min(session.expires_at, session.auth_expires_at)
+                            and (
+                                session.revoked_at is None or session.revoked_at <= now
+                            )
                         )
                     )
                 ):

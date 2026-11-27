@@ -63,6 +63,8 @@ describe("Google login callbacks", () => {
     expect(JSON.stringify(session)).not.toContain(userId);
     expect(JSON.stringify(session)).not.toContain("binding");
     expect(session.expires).toBe(new Date((start + 28800) * 1000).toISOString());
+    await options.callbacks!.jwt!({ token } as never);
+    expect(transport.change).not.toHaveBeenCalled();
     await options.callbacks!.jwt!({ token, trigger: "update", session: { binding: { user_id: loginId } } } as never);
     expect(transport.change).toHaveBeenCalledWith(token.binding, "renew", start);
     await options.events!.signOut!({ token } as never);
@@ -86,6 +88,25 @@ describe("Google login callbacks", () => {
     const denied = await core.AuthHandler({ options, req: { ...req, action: "signout", method: "POST" } });
     expect(denied.redirect).toContain("csrf=true");
     expect(transport.change).not.toHaveBeenCalled();
+  });
+
+  it("renews only after a CSRF-verified NextAuth session update", async () => {
+    const { options, transport } = setup();
+    const req = { headers: { host: "localhost:3000" }, cookies: {}, query: {}, body: {} };
+    const csrf = await core.AuthHandler({ options, req: { ...req, action: "csrf", method: "GET" } });
+    const csrfCookie = csrf.cookies.find((cookie: { name: string }) => cookie.name === "next-auth.csrf-token");
+    const binding = { user_id: userId, login_session_id: loginId, generation: 0, auth_started_at: start, auth_expires_at: start + 28800 };
+    options.jwt = { ...options.jwt, decode: async () => ({ binding }) };
+    const sessionRequest = { ...req, action: "session", cookies: { [csrfCookie.name]: csrfCookie.value, "next-auth.session-token": "synthetic-session" } };
+
+    await core.AuthHandler({ options, req: { ...sessionRequest, method: "GET" } });
+    const denied = await core.AuthHandler({ options, req: { ...sessionRequest, method: "POST" } });
+    expect(denied.status).toBe(400);
+    expect(transport.change).not.toHaveBeenCalled();
+
+    const updated = await core.AuthHandler({ options, req: { ...sessionRequest, method: "POST", body: { csrfToken: csrf.body.csrfToken, data: {} } } });
+    expect(updated.body).not.toHaveProperty("binding");
+    expect(transport.change).toHaveBeenCalledExactlyOnceWith(binding, "renew", start);
   });
 
   it("detects a NextAuth sign-out event failure after CSRF verification", async () => {

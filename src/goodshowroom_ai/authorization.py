@@ -12,8 +12,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from goodshowroom_ai.storage.access_requests import scope_within
+from goodshowroom_ai.storage.access_requests import role_allows_scope
 from goodshowroom_ai.storage.identities import (
+    Grant,
+    RoleCapability,
     RoleRecord,
     SourceReference,
     UserRecord,
@@ -52,6 +54,18 @@ class PolicySnapshot(Contract):
     login: LoginRecord
     mappings: tuple[IdentityMapping, ...] = Field(default=(), max_length=100)
     sites: AppSetting | None = None
+
+
+def grant_authority(policy: PolicySnapshot) -> tuple[Grant, ...]:
+    if policy.role.delegation_grants is not None:
+        return policy.role.delegation_grants
+    return policy.user.scope_limit
+
+
+def grantable_capabilities(policy: PolicySnapshot) -> frozenset[RoleCapability]:
+    if policy.role.delegation_grants:
+        return policy.role.capabilities | {"chat"}
+    return policy.role.capabilities
 
 
 class CollectionPolicy(Contract):
@@ -165,11 +179,7 @@ class AuthorizationService:
                 or not login.valid(now)
             ):
                 deny()
-            # Each user scope must fit a single role grant: never union separate grants.
-            if not user.scope_limit or any(
-                not any(scope_within(scope, grant) for grant in role.grants)
-                for scope in user.scope_limit
-            ):
+            if not role_allows_scope(role, user.scope_limit):
                 deny()
             self._action(principal, request, role)
             constraints = tuple(

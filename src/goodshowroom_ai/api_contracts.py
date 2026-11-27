@@ -378,7 +378,7 @@ class AdminDecisionRequest(Contract):
     @model_validator(mode="after")
     def decision_scope(self):
         if self.decision == "approve":
-            if self.role_id is None or not self.scope_limit:
+            if self.role_id is None:
                 raise ValueError("Approval requires scope")
         elif self.role_id is not None or self.scope_limit:
             raise ValueError("Rejection cannot grant scope")
@@ -486,7 +486,7 @@ class AdminUserAccessUpdateRequest(Contract):
     @model_validator(mode="after")
     def access_update_scope(self):
         if self.approval_status == "approved":
-            if self.role_id is None or not self.scope_limit:
+            if self.role_id is None:
                 raise ValueError("Approval requires role and scope")
         elif self.role_id is not None or self.scope_limit:
             raise ValueError("Revocation cannot specify role or scope")

@@ -811,12 +811,13 @@ def test_admin_user_access_update_request_valid_and_rejected():
             json.dumps(dict(approved_payload, role_id=None)).encode(),
         )
 
-    # Approved without scope_limit rejected
-    with pytest.raises(InvalidContract):
-        parse_contract(
-            AdminUserAccessUpdateRequest,
-            json.dumps(dict(approved_payload, scope_limit=[])).encode(),
-        )
+    # An administrator-only role can have an empty business scope.
+    # The management service verifies which roles permit it.
+    admin_only = parse_contract(
+        AdminUserAccessUpdateRequest,
+        json.dumps(dict(approved_payload, scope_limit=[])).encode(),
+    )
+    assert admin_only.scope_limit == ()
 
     # Revoked with role_id rejected
     with pytest.raises(InvalidContract):

@@ -129,6 +129,116 @@ async def test_bootstrap_verified_once_and_collision_denied(env):
 
 
 @pytest.mark.asyncio
+async def test_admin_only_bootstrap_separates_delegation_and_personal_access(
+    env, signing_key
+):
+    from goodshowroom_ai.access_management import AccessManagement
+    from goodshowroom_ai.authorization import (
+        AuthorizationService,
+        PolicySnapshot,
+        ProtectedAction,
+    )
+
+    client, _, _, _, _ = env
+    db = await AppDatabase.connect(
+        "mongodb://offline.invalid", client_factory=lambda *_a, **_k: client
+    )
+    allowed = selected_grant()
+    capabilities = frozenset({"manage_access", "manage_settings", "review_saved_chats"})
+    role = role_record(
+        active=True, grants=(), capabilities=capabilities, delegation_grants=(allowed,)
+    )
+    client.database["roles"].documents[str(role.id)] = role.document()
+
+    async def current_identity(_):
+        return True
+
+    async def load_policy(_):
+        return PolicySnapshot(
+            policy_version=committed_policy, user=user, role=role, login=login
+        )
+
+    auth = AuthorizationService(
+        load_policy=load_policy,
+        check_identity=current_identity,
+        clock=lambda: NOW,
+    )
+    service = AccessWorkflow(
+        db, _verifier(signing_key), auth, lambda: NOW, "admin@example.test", role.id, ()
+    )
+    path = "/v1/internal/login/exchange"
+    claims = _bootstrap_claims(
+        path=path, digest=operation_digest("POST", path), email="admin@example.test"
+    )
+    user, login = await service.exchange(
+        _mint(signing_key, claims),
+        expected_policy_version=version(client),
+        request_id=uuid4(),
+    )
+    committed_policy = version(client)
+    assert user.approval_status == "approved"
+    assert user.scope_limit == ()
+    assert client.database["app_settings"].documents["access_control"][
+        "bootstrap_complete"
+    ]
+    assert len(client.database["audit_events"].documents) == 1
+    principal = Principal(
+        user_id=user.id, login_id=login.id, generation=login.generation
+    )
+    for action in ("manage_access", "manage_settings"):
+        await auth.authorize(principal, ProtectedAction(action=action))
+    with pytest.raises(AccessDenied):
+        await auth.authorize(
+            principal, ProtectedAction(action="chat", owner_id=user.id, mode="saved")
+        )
+    review = await auth.authorize(
+        principal,
+        ProtectedAction(action="review_saved_chats", owner_id=uuid4(), mode="saved"),
+    )
+    assert review.requires_review_audit
+
+    management = AccessManagement(db, auth, lambda: NOW)
+    staff_role = role_record(
+        name_key="delegated",
+        active=True,
+        grants=(allowed,),
+        capabilities=frozenset({"chat"}),
+    )
+    created = await management.create_role(
+        principal,
+        staff_role,
+        expected_policy_version=version(client),
+        audit_request_id=uuid4(),
+    )
+    assert created.grants == (allowed,)
+    committed_policy = version(client)
+    wider = allowed.model_copy(update={"sites": (*allowed.sites, "another-site")})
+    forbidden_roles = (
+        staff_role.model_copy(update={"id": uuid4(), "grants": (wider,)}),
+        role.model_copy(update={"id": uuid4(), "name_key": "delegation-copy"}),
+    )
+    for forbidden in forbidden_roles:
+        with pytest.raises(PermissionError):
+            await management.create_role(
+                principal,
+                forbidden,
+                expected_policy_version=version(client),
+                audit_request_id=uuid4(),
+            )
+    with pytest.raises(AccessDenied):
+        await management.change_user(
+            principal,
+            user.id,
+            role_id=created.id,
+            scope=(allowed,),
+            status="approved",
+            expected_version=user.version,
+            expected_policy_version=version(client),
+            audit_request_id=uuid4(),
+        )
+
+
+@pytest.mark.asyncio
 async def test_bootstrap_competing_attempts_have_one_winner(env):
     client, service, _, _, _ = env
     expected = version(client)

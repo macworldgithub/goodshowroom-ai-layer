@@ -6,7 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from goodshowroom_ai.storage.identities import Grant, UserRecord
+from goodshowroom_ai.storage.identities import Grant, RoleRecord, UserRecord
 from goodshowroom_ai.storage.models import utc_datetime, validate_bson_document
 
 AccessStatus = Literal["pending", "approved", "rejected", "consumed", "revoked"]
@@ -28,6 +28,20 @@ def scope_within(scope: Grant, allowed: Grant) -> bool:
     return all(
         set(getattr(scope, key)) <= set(getattr(allowed, key))
         for key in ("sites", "fields", "metrics", "tools")
+    )
+
+
+def role_allows_scope(role: RoleRecord, scope: tuple[Grant, ...]) -> bool:
+    if not role.active:
+        return False
+    if not scope:
+        return (
+            not role.grants
+            and "manage_access" in role.capabilities
+            and "chat" not in role.capabilities
+        )
+    return all(
+        any(scope_within(grant, parent) for parent in role.grants) for grant in scope
     )
 
 
@@ -76,8 +90,8 @@ class AccessRequestRecord(BaseModel):
             )
         if self.kind == "preapproval" and self.status in ("approved", "rejected"):
             raise ValueError("Invalid preapproval status")
-        if self.status == "approved" and (self.role_id is None or not self.scope_limit):
-            raise ValueError("Approval requires explicit role and scope")
+        if self.status == "approved" and self.role_id is None:
+            raise ValueError("Approval requires a role")
         if (
             self.kind == "request"
             and self.status == "pending"

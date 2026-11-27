@@ -7,7 +7,13 @@ from pydantic import Field
 
 from goodshowroom_ai.access_management import AccessManagement
 from goodshowroom_ai.api_contracts import InvalidContract
-from goodshowroom_ai.authorization import Contract, Principal, ProtectedAction
+from goodshowroom_ai.authorization import (
+    Contract,
+    Principal,
+    ProtectedAction,
+    grant_authority,
+    grantable_capabilities,
+)
 from goodshowroom_ai.cursors import CursorRejected, CursorUnavailable
 from goodshowroom_ai.own_access import OwnAccessService
 from goodshowroom_ai.storage.access_requests import AccessRequestRecord, scope_within
@@ -86,7 +92,7 @@ class AdminAccess:
         )
         if not isinstance(source, SourceReference) or not any(
             scope.record_mode == "selected" and source in scope.selected_records
-            for scope in decision.snapshot.user.scope_limit
+            for scope in grant_authority(decision.snapshot)
         ):
             raise CursorRejected()
         await self._authorization.recheck(decision)
@@ -214,16 +220,15 @@ class AdminAccess:
                 if record.scope_limit and any(
                     not any(
                         scope_within(scope, allowed)
-                        for allowed in decision.snapshot.user.scope_limit
+                        for allowed in grant_authority(decision.snapshot)
                     )
                     for scope in record.scope_limit
                 ):
                     continue
                 if record.role_id is not None:
                     role = await tx.get_role(record.role_id)
-                    if (
-                        role is None
-                        or not role.capabilities <= decision.snapshot.role.capabilities
+                    if role is None or not role.capabilities <= grantable_capabilities(
+                        decision.snapshot
                     ):
                         continue
                 items.append(

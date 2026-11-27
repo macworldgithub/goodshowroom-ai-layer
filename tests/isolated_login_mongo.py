@@ -63,10 +63,16 @@ from tests.test_identity_bridge import (
 )
 from tests.test_identity_storage import role_record, selected_grant
 
-URI = "mongodb://127.0.0.1:33719/?replicaSet=ticket031test"
 DATA_DIR = Path(
     r"C:\Users\Mustafa Abrar\.codex\visualizations\2026\11\02\01a19a9a-9782-7860-b680-7176db29eab8\ticket031-mongodb"
 )
+TEST_PORT = 33719
+if os.environ.get("TICKET031_ADMIN_ISOLATE") == "true":
+    TEST_PORT = 33731
+    DATA_DIR = (
+        Path(os.environ["LOCALAPPDATA"]) / "GoodShowRoomTools/ticket031-admin-mongodb"
+    )
+URI = f"mongodb://127.0.0.1:{TEST_PORT}/?replicaSet=ticket031test"
 DB_NAME = "byd_ai_layer"
 MARKER = {"_id": "ticket031", "purpose": "disposable-synthetic-login-tests"}
 
@@ -79,7 +85,10 @@ def isolate_network():
     internal = threading.local()
 
     def connect(sock, address):
-        if getattr(internal, "socketpair", False) or address == ("127.0.0.1", 33719):
+        if getattr(internal, "socketpair", False) or address == (
+            "127.0.0.1",
+            TEST_PORT,
+        ):
             return original_connect(sock, address)
         raise RuntimeError("Network access denied by isolated test guard")
 
@@ -91,7 +100,7 @@ def isolate_network():
             internal.socketpair = False
 
     def getaddrinfo(host, port, *args, **kwargs):
-        if host != "127.0.0.1" or int(port) != 33719:
+        if host != "127.0.0.1" or int(port) != TEST_PORT:
             raise RuntimeError("DNS access denied by isolated test guard")
         return original_getaddrinfo(host, port, *args, **kwargs)
 
@@ -134,7 +143,7 @@ async def verify_target(client):
         or not hello.get("isWritablePrimary")
         or Path(parsed["storage"]["dbPath"]).resolve() != DATA_DIR.resolve()
         or parsed["net"]["bindIp"] != "127.0.0.1"
-        or parsed["net"]["port"] != 33719
+        or parsed["net"]["port"] != TEST_PORT
     ):
         raise RuntimeError("The isolated MongoDB target could not be verified.")
 

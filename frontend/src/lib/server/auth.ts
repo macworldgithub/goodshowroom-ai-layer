@@ -23,7 +23,7 @@ export function makeAuthOptions(settings: { clientId: string; clientSecret: stri
         try { googleIdentityFromVerifiedCallback(account?.provider, account?.providerAccountId, profile); return true; }
         catch { return false; }
       },
-      async jwt({ token, account, profile }) {
+      async jwt({ token, account, profile, trigger }) {
         const time = now();
         if (account) {
           const identity = googleIdentityFromVerifiedCallback(account.provider, account.providerAccountId, profile);
@@ -31,7 +31,7 @@ export function makeAuthOptions(settings: { clientId: string; clientSecret: stri
           return { name: token.name, email: token.email, picture: token.picture, binding };
         }
         if (!validBinding(token.binding, time)) throw new Error("Login session unavailable.");
-        await settings.transport.change(token.binding, "renew", time);
+        if (trigger === "update") await settings.transport.change(token.binding, "renew", time);
         return token;
       },
       async session({ session, token }) {

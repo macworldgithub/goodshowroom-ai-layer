@@ -17,7 +17,13 @@ from pymongo.collation import Collation
 from pymongo.errors import DuplicateKeyError
 from pymongo.read_concern import ReadConcern
 from pymongo.write_concern import WriteConcern
-from goodshowroom_ai.storage.access_requests import AccessRequestRecord, scope_within
+
+from goodshowroom_ai.identity_security import IdentitySecurityState
+from goodshowroom_ai.storage.access_requests import (
+    AccessRequestRecord,
+    role_allows_scope,
+    scope_within,
+)
 from goodshowroom_ai.storage.chat_sessions import (
     ChatQuestionState,
     ChatReviewPosition,
@@ -27,17 +33,15 @@ from goodshowroom_ai.storage.chat_sessions import (
 )
 from goodshowroom_ai.storage.identities import RoleRecord, UserRecord
 from goodshowroom_ai.storage.logins import LoginRecord
-from goodshowroom_ai.identity_security import IdentitySecurityState
-from goodshowroom_ai.storage.settings import AppSetting, IdentityMapping
-
 from goodshowroom_ai.storage.models import (
-    AppAuditEvent,
     MAX_APP_DOCUMENT_BYTES,
+    AppAuditEvent,
     InternalAuthorizationContext,
     StorageCapability,
     utc_datetime,
     validate_bson_document,
 )
+from goodshowroom_ai.storage.settings import AppSetting, IdentityMapping
 
 if TYPE_CHECKING:
     from goodshowroom_ai.storage.chat_turns import ChatTurnRecord
@@ -213,7 +217,7 @@ class AppDatabase:
         Call only with a principal from the verified internal assertion boundary.
         Unsupported transactions or missing/malformed records deny in the service.
         """
-        from goodshowroom_ai.authorization import Principal, PolicySnapshot
+        from goodshowroom_ai.authorization import PolicySnapshot, Principal
 
         if not isinstance(principal, Principal):
             raise AuthorizationDenied("Policy read is not authorized.")
@@ -697,9 +701,7 @@ class _AppWriteTransaction:
         if status == "approved":
             if (
                 not isinstance(role, RoleRecord)
-                or not role.active
-                or not scope
-                or any(not any(scope_within(g, a) for a in role.grants) for g in scope)
+                or not role_allows_scope(role, scope)
                 or await self.get_role(role.id) != role
             ):
                 raise AuthorizationDenied("Access is not allowed.")
@@ -857,22 +859,13 @@ class _AppWriteTransaction:
         ):
             raise AuthorizationDenied("Saved-chat review is not authorized.")
         user = await self.get_user(actor_id)
-        if (
-            user is None
-            or user.approval_status != "approved"
-            or user.role_id is None
-            or not user.scope_limit
-        ):
+        if user is None or user.approval_status != "approved" or user.role_id is None:
             raise AuthorizationDenied("Saved-chat review is not authorized.")
         role = await self.get_role(user.role_id)
         if (
             role is None
-            or not role.active
             or "review_saved_chats" not in role.capabilities
-            or any(
-                not any(scope_within(scope, grant) for grant in role.grants)
-                for scope in user.scope_limit
-            )
+            or not role_allows_scope(role, user.scope_limit)
         ):
             raise AuthorizationDenied("Saved-chat review is not authorized.")
         login = await self.get_login(login_id)
@@ -2133,7 +2126,8 @@ class _AppWriteTransaction:
             )
             if result.matched_count != 1:
                 raise AppWriteConflict("Login changed.")
-            await self.__advance_policy_version()
+            if auth_expiry is None:
+                await self.__advance_policy_version()
             return updated
         except (ValueError, AppWriteConflict, AuthorizationDenied):
             self.__poisoned = True

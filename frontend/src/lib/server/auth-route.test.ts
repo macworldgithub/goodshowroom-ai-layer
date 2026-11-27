@@ -13,11 +13,11 @@ import { POST } from "../../app/api/auth/[...nextauth]/route";
 afterEach(() => vi.unstubAllEnvs());
 
 describe("auth route logout cleanup", () => {
-  it("withholds cookie clearing when the logout event fails", async () => {
+  it("preserves cookie clearing when the logout event fails", async () => {
     vi.stubEnv("NEXTAUTH_URL", "http://localhost:3000");
     const request = new Request("http://localhost:3000/api/auth/signout?fail=1", { method: "POST", headers: { host: "localhost:3000", origin: "http://localhost:3000" } });
     const result = await POST(request, { params: Promise.resolve({ nextauth: ["signout"] }) });
     expect(result.status).toBe(503);
-    expect(result.headers.get("set-cookie")).toBeNull();
+    expect(result.headers.getSetCookie()).toEqual(["synthetic=cleared; Max-Age=0"]);
   });
 });

@@ -16,7 +16,9 @@ async function handler(request: Request, context: { params: Promise<{ nextauth: 
     return await authRequestContext.run(state, async () => {
       const response = await NextAuth(options)(request, context);
       if (request.method === "POST" && state.logoutFailed) {
-        return Response.json({ error: "Logout cleanup could not be confirmed." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+        const headers = new Headers({ "Cache-Control": "no-store" });
+        for (const cookie of response.headers.getSetCookie()) headers.append("Set-Cookie", cookie);
+        return Response.json({ error: "Signed out. Server cleanup could not be confirmed." }, { status: 503, headers });
       }
       return response;
     });

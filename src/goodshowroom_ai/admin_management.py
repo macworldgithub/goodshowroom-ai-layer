@@ -22,6 +22,8 @@ from goodshowroom_ai.authorization import (
     Contract,
     Principal,
     ProtectedAction,
+    grant_authority,
+    grantable_capabilities,
 )
 from goodshowroom_ai.cursors import CursorRejected, CursorUnavailable
 from goodshowroom_ai.own_access import OwnAccessService
@@ -186,9 +188,11 @@ class AdminManagement:
                     r = await get_cached_role(u.role_id)
                     if (
                         r is None
-                        or not (r.capabilities <= decision.snapshot.role.capabilities)
+                        or not (
+                            r.capabilities <= grantable_capabilities(decision.snapshot)
+                        )
                         or not within_scope(
-                            u.scope_limit, decision.snapshot.user.scope_limit
+                            u.scope_limit, grant_authority(decision.snapshot)
                         )
                     ):
                         continue
@@ -288,9 +292,9 @@ class AdminManagement:
             for r in all_roles:
                 if active is not None and r.active != active:
                     continue
-                if not (r.capabilities <= decision.snapshot.role.capabilities):
+                if not (r.capabilities <= grantable_capabilities(decision.snapshot)):
                     continue
-                if not within_scope(r.grants, decision.snapshot.user.scope_limit):
+                if not within_scope(r.grants, grant_authority(decision.snapshot)):
                     continue
                 manageable_roles.append(r)
 
@@ -388,8 +392,8 @@ class AdminManagement:
         if target_role.id == decision.snapshot.role.id:
             raise AccessDenied("Access is not allowed.")
         if not (
-            target_role.capabilities <= decision.snapshot.role.capabilities
-        ) or not within_scope(target_role.grants, decision.snapshot.user.scope_limit):
+            target_role.capabilities <= grantable_capabilities(decision.snapshot)
+        ) or not within_scope(target_role.grants, grant_authority(decision.snapshot)):
             raise ApiProblem(ErrorCode.NOT_FOUND)
 
         if target_role.version != data.expected_version:
@@ -443,11 +447,11 @@ class AdminManagement:
         if target_user is None or target_user.approval_status != "approved":
             raise ApiProblem(ErrorCode.NOT_FOUND)
         if target_role is None or not (
-            target_role.capabilities <= decision.snapshot.role.capabilities
+            target_role.capabilities <= grantable_capabilities(decision.snapshot)
         ):
             raise ApiProblem(ErrorCode.NOT_FOUND)
         if not within_scope(
-            target_user.scope_limit, decision.snapshot.user.scope_limit
+            target_user.scope_limit, grant_authority(decision.snapshot)
         ):
             raise ApiProblem(ErrorCode.NOT_FOUND)
 

@@ -4,8 +4,18 @@ from contextlib import asynccontextmanager
 from uuid import UUID
 
 from goodshowroom_ai.access_workflow import AccessWorkflow, _validated_scope
-from goodshowroom_ai.authorization import AccessDenied, Principal, ProtectedAction
-from goodshowroom_ai.storage.access_requests import AccessRequestRecord, scope_within
+from goodshowroom_ai.authorization import (
+    AccessDenied,
+    Principal,
+    ProtectedAction,
+    grant_authority,
+    grantable_capabilities,
+)
+from goodshowroom_ai.storage.access_requests import (
+    AccessRequestRecord,
+    role_allows_scope,
+    scope_within,
+)
 from goodshowroom_ai.storage.identities import RoleRecord, UserRecord
 from goodshowroom_ai.storage.models import utc_datetime
 from goodshowroom_ai.storage.mongo import AppWriteConflict
@@ -76,8 +86,10 @@ class AccessManagement:
 
     @staticmethod
     def _role_authority(role, decision):
-        if not role.capabilities <= decision.snapshot.role.capabilities or not _within(
-            role.grants, decision.snapshot.user.scope_limit
+        if (
+            role.delegation_grants is not None
+            or not role.capabilities <= grantable_capabilities(decision.snapshot)
+            or not _within(role.grants, grant_authority(decision.snapshot))
         ):
             raise AccessDenied("Access is not allowed.")
 
@@ -90,11 +102,7 @@ class AccessManagement:
                 if replacement_user and original.id == replacement_user.id
                 else original
             )
-            if (
-                user.approval_status != "approved"
-                or user.role_id is None
-                or not user.scope_limit
-            ):
+            if user.approval_status != "approved" or user.role_id is None:
                 continue
             role = (
                 replacement_role
@@ -105,7 +113,7 @@ class AccessManagement:
                 role is not None
                 and role.active
                 and "manage_access" in role.capabilities
-                and _within(user.scope_limit, role.grants)
+                and role_allows_scope(role, user.scope_limit)
             ):
                 return
         raise AccessDenied("Access is not allowed.")
@@ -160,7 +168,7 @@ class AccessManagement:
             if role.active and any(
                 user.role_id == role.id
                 and user.approval_status == "approved"
-                and not _within(user.scope_limit, role.grants)
+                and not role_allows_scope(role, user.scope_limit)
                 for user in users
             ):
                 raise AccessDenied("Access is not allowed.")
@@ -206,22 +214,24 @@ class AccessManagement:
                 current_role = await tx.get_role(current.role_id)
                 if (
                     current_role is None
+                    or current_role.delegation_grants is not None
                     or not current_role.capabilities
-                    <= decision.snapshot.role.capabilities
+                    <= grantable_capabilities(decision.snapshot)
                 ):
                     raise AccessDenied("Access is not allowed.")
-            if not _within(current.scope_limit, decision.snapshot.user.scope_limit):
+            if not _within(current.scope_limit, grant_authority(decision.snapshot)):
                 raise AccessDenied("Access is not allowed.")
             if status == "approved":
-                if not isinstance(role_id, UUID) or not scope:
+                if not isinstance(role_id, UUID):
                     raise AccessDenied("Access is not allowed.")
                 role = await tx.get_role(role_id)
                 if (
                     role is None
-                    or not role.active
-                    or not role.capabilities <= decision.snapshot.role.capabilities
-                    or not _within(scope, role.grants)
-                    or not _within(scope, decision.snapshot.user.scope_limit)
+                    or role.delegation_grants is not None
+                    or not role.capabilities
+                    <= grantable_capabilities(decision.snapshot)
+                    or not role_allows_scope(role, scope)
+                    or not _within(scope, grant_authority(decision.snapshot))
                 ):
                     raise AccessDenied("Access is not allowed.")
             elif role_id is not None or scope:
@@ -270,9 +280,10 @@ class AccessManagement:
             role = await tx.get_role(record.role_id)
             if (
                 role is None
-                or not role.active
-                or not role.capabilities <= decision.snapshot.role.capabilities
-                or not _within(record.scope_limit, decision.snapshot.user.scope_limit)
+                or role.delegation_grants is not None
+                or not role.capabilities <= grantable_capabilities(decision.snapshot)
+                or not role_allows_scope(role, record.scope_limit)
+                or not _within(record.scope_limit, grant_authority(decision.snapshot))
             ):
                 raise AccessDenied("Access is not allowed.")
             result = await tx.create_access_request(record, now)
@@ -297,8 +308,8 @@ class AccessManagement:
             role = await tx.get_role(record.role_id)
             if (
                 role is None
-                or not role.capabilities <= decision.snapshot.role.capabilities
-                or not _within(record.scope_limit, decision.snapshot.user.scope_limit)
+                or not role.capabilities <= grantable_capabilities(decision.snapshot)
+                or not _within(record.scope_limit, grant_authority(decision.snapshot))
             ):
                 raise AccessDenied("Access is not allowed.")
             await tx.close_access_request(request_id, status="revoked", now=now)

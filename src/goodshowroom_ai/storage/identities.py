@@ -115,10 +115,8 @@ class UserRecord(Record):
 
     @model_validator(mode="after")
     def approved_scope(self):
-        if self.approval_status == "approved" and (
-            self.role_id is None or not self.scope_limit
-        ):
-            raise ValueError("Approved users require role and explicit scope")
+        if self.approval_status == "approved" and self.role_id is None:
+            raise ValueError("Approved users require a role")
         return self
 
 
@@ -132,3 +130,13 @@ class RoleRecord(Record):
     active: bool = False
     grants: tuple[Grant, ...] = Field(default=(), max_length=100)
     capabilities: frozenset[RoleCapability] = Field(default_factory=frozenset)
+    delegation_grants: tuple[Grant, ...] | None = Field(default=None, max_length=100)
+
+    @model_validator(mode="after")
+    def delegation_requires_manager(self):
+        if (
+            self.delegation_grants is not None
+            and "manage_access" not in self.capabilities
+        ):
+            raise ValueError("Delegation requires access management")
+        return self

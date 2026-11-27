@@ -124,6 +124,7 @@ async def test_signed_lifecycle_route_lease_replay_and_cleanup(signing_key):
             renew_path, headers={"authorization": f"Bearer {revoke_token}"}
         )
         assert invalid.status_code in {401, 403}
+        policy_before_renewal = version(client)
         renewed = await http.post(
             renew_path, headers={"authorization": f"Bearer {renew_token}"}
         )
@@ -133,6 +134,7 @@ async def test_signed_lifecycle_route_lease_replay_and_cleanup(signing_key):
             == (now[0] + timedelta(minutes=5)).isoformat()
         )
         assert memory.refresh_login.await_count == 1
+        assert version(client) == policy_before_renewal
         now[0] += timedelta(seconds=10)
         replay = await http.post(
             renew_path, headers={"authorization": f"Bearer {renew_token}"}
@@ -142,6 +144,8 @@ async def test_signed_lifecycle_route_lease_replay_and_cleanup(signing_key):
             replay.json()["data"]["lease_valid_until"]
             == renewed.json()["data"]["lease_valid_until"]
         )
+        now[0] += timedelta(minutes=5)
+        revoke_token = assertion(revoke_path, now[0])
         logout = await http.post(
             revoke_path, headers={"authorization": f"Bearer {revoke_token}"}
         )
