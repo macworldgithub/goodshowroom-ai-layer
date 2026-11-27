@@ -100,7 +100,9 @@ const notices = [
   ["unavailable", "This result cannot be shown under the current disclosure policy.", "disclosure_withheld", "suppressed"],
 ] as const;
 
-function responseValid(response: Schemas["StructuredResponse"]): void {
+/** Throws ApiContractError unless the response matches the approved answer rules.
+ * The answer view calls this before it draws anything, so a bad payload never renders. */
+export function responseValid(response: Schemas["StructuredResponse"]): void {
   if (response.status !== "complete") {
     if (!notices.some(([status, answer, warning, coverage]) => response.status === status
       && response.answer === answer && equal(response.warnings, [warning])
