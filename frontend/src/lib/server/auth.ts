@@ -5,6 +5,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { googleIdentityFromVerifiedCallback } from "./google-identity";
 import { createLoginTransport, validBinding, type Binding } from "./login-transport";
 import { authLogger } from "./auth-logger";
+import type { SigningConfiguration } from "./identity";
 
 const lifetime = 8 * 60 * 60;
 
@@ -48,6 +49,13 @@ export function makeAuthOptions(settings: { clientId: string; clientSecret: stri
   };
 }
 
+/** Signing settings for server-to-backend identity assertions. Server environment only. */
+export function signingConfigurationFromEnv(): SigningConfiguration {
+  const activatedAt = Number(process.env.IDENTITY_KEY_ACTIVATED_AT);
+  if (!Number.isSafeInteger(activatedAt) || activatedAt <= 0) throw new Error("Login configuration unavailable.");
+  return { issuer: process.env.IDENTITY_ISSUER ?? "", audience: process.env.IDENTITY_AUDIENCE ?? "", kid: process.env.IDENTITY_KEY_ID ?? "", privatePem: (process.env.IDENTITY_PRIVATE_KEY ?? "").replace(/\\n/g, "\n"), activatedAt, revoked: false };
+}
+
 export function configuredAuthOptions(): NextAuthOptions {
   const rawUrl = process.env.NEXTAUTH_URL ?? "";
   let url: URL;
@@ -57,8 +65,6 @@ export function configuredAuthOptions(): NextAuthOptions {
   if (consentSetting !== undefined && consentSetting !== "true" && consentSetting !== "false") throw new Error("Login configuration unavailable.");
   const forceConsent = consentSetting === "true";
   if (forceConsent && (process.env.APP_ENV !== "test" || url.origin !== "http://localhost:3000")) throw new Error("Login configuration unavailable.");
-  const activatedAt = Number(process.env.IDENTITY_KEY_ACTIVATED_AT);
-  if (!Number.isSafeInteger(activatedAt) || activatedAt <= 0) throw new Error("Login configuration unavailable.");
-  const transport = createLoginTransport({ issuer: process.env.IDENTITY_ISSUER ?? "", audience: process.env.IDENTITY_AUDIENCE ?? "", kid: process.env.IDENTITY_KEY_ID ?? "", privatePem: (process.env.IDENTITY_PRIVATE_KEY ?? "").replace(/\\n/g, "\n"), activatedAt, revoked: false });
+  const transport = createLoginTransport(signingConfigurationFromEnv());
   return makeAuthOptions({ clientId: process.env.GOOGLE_CLIENT_ID ?? "", clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "", secret: process.env.AUTH_SECRET ?? "", transport, forceConsent });
 }

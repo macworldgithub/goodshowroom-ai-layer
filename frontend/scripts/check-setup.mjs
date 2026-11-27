@@ -72,10 +72,23 @@ try {
   const html = await response.text();
   assert.ok(html.includes("Good Showroom AI"), "Setup page missing");
   inspect(html);
-  for (const path of ["/api/v1/chats", "/.env"]) {
-    const missing = await fetch(`http://127.0.0.1:${port}${path}`);
-    assert.equal(missing.status, 404, "Unexpected setup route available");
-    inspect(await missing.text());
+  const policy = response.headers.get("content-security-policy") ?? "";
+  for (const part of ["default-src 'self'", "frame-ancestors 'none'", "object-src 'none'", "base-uri 'none'"]) {
+    assert.ok(policy.includes(part), "Content security policy is incomplete");
+  }
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff", "Missing nosniff header");
+  assert.equal(response.headers.get("x-frame-options"), "DENY", "Missing frame protection");
+  assert.equal(response.headers.get("referrer-policy"), "no-referrer", "Missing referrer policy");
+  const missing = await fetch(`http://127.0.0.1:${port}/.env`);
+  assert.equal(missing.status, 404, "Unexpected setup route available");
+  inspect(await missing.text());
+  // The browser proxy must refuse without a session. The test host is not the configured site,
+  // so a configured app answers 403 and an unconfigured app answers 503. Neither is a success.
+  for (const [method, path] of [["GET", "/api/v1/me"], ["GET", "/api/v1/internal/login/exchange"], ["POST", "/api/v1/saved-chats"]]) {
+    const denied = await fetch(`http://127.0.0.1:${port}${path}`, { method, headers: method === "POST" ? { origin: "http://evil.example", "content-type": "application/json" } : {}, body: method === "POST" ? "{}" : undefined });
+    assert.ok([403, 404, 503].includes(denied.status), "Proxy route answered an unauthenticated request");
+    assert.equal(denied.headers.get("cache-control"), "no-store", "Proxy response can be cached");
+    inspect(await denied.text());
   }
 } finally {
   server.kill();
@@ -85,4 +98,4 @@ for (const [index, path] of rootEnvs.entries()) {
   const after = await readConfiguration(path);
   assert.equal(createHash("sha256").update(after).digest("hex"), createHash("sha256").update(originals[index]).digest("hex"), "Environment file changed");
 }
-console.log("Setup checks passed: root environment, build, browser assets, HTTP startup, unavailable routes, unchanged environment.");
+console.log("Setup checks passed: root environment, build, browser assets, HTTP startup, security headers, refused proxy routes, unchanged environment.");

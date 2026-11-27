@@ -15,6 +15,7 @@
     "contracts:generate": "node scripts/generate-contracts.mjs",
     "contracts:check": "node scripts/generate-contracts.mjs --check",
     "check:setup": "node scripts/check-setup.mjs",
+    "check:proxy": "node scripts/check-proxy-http.mjs",
     "test:unit": "node scripts/run-vitest.mjs",
     "test:e2e": "node scripts/run-playwright.mjs",
     "test:harness": "node scripts/check-test-harness.mjs"

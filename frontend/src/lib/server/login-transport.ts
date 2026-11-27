@@ -15,11 +15,11 @@ export function validBinding(value: unknown, now: number): value is Binding {
     (binding.auth_started_at as number) <= now && now < Math.min(binding.auth_expires_at as number, (binding.auth_started_at as number) + 28800);
 }
 
-export function createLoginTransport(config: SigningConfiguration) {
+export function createLoginTransport(config: SigningConfiguration, origin = "http://127.0.0.1:8000") {
   async function send(path: string, identity: Bootstrap | RequestIdentity, now: number): Promise<unknown> {
     const assertion = await signAssertion(config, identity, { method: "POST", path }, now);
     let response: Response;
-    try { response = await fetch(`http://127.0.0.1:8000${path}`, { method: "POST", headers: { authorization: `Bearer ${assertion}` }, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(5000) }); }
+    try { response = await fetch(`${origin}${path}`, { method: "POST", headers: { authorization: `Bearer ${assertion}` }, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(5000) }); }
     catch { throw new Error("Login service unavailable."); }
     const expectedStatus = path === "/v1/internal/login/revoke" ? 204 : 200;
     if (response.status !== expectedStatus) throw new Error("Login service unavailable.");
