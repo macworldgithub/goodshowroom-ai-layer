@@ -132,6 +132,20 @@ class AccessWorkflow:
             admission=admission,
         )
 
+    def temporary_chat_service(self, *, memory, model, tracing, admission):
+        from goodshowroom_ai.saved_turn_setup import build_temporary_chat_service
+
+        return build_temporary_chat_service(
+            self._db,
+            self._verifier,
+            self._authorization,
+            self._clock,
+            memory=memory,
+            model=model,
+            tracing=tracing,
+            admission=admission,
+        )
+
     def admin_configuration_service(self, staff):
         from goodshowroom_ai.admin_configuration import AdminConfiguration
 

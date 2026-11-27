@@ -3,6 +3,8 @@ export function CreateChatRequest(value: unknown): boolean;
 export function TurnRequest(value: unknown): boolean;
 export function ChatResultEnvelope(value: unknown): boolean;
 export function SavedRequestEnvelope(value: unknown): boolean;
+export function TemporaryChatEnvelope(value: unknown): boolean;
+export function TemporaryRequestEnvelope(value: unknown): boolean;
 export function SavedChatEnvelope(value: unknown): boolean;
 export function SavedChatPageEnvelope(value: unknown): boolean;
 export function SavedHistoryEnvelope(value: unknown): boolean;

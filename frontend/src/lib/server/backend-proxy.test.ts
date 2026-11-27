@@ -148,6 +148,22 @@ describe("origin, host and CSRF", () => {
     expect(calls(seen)).toHaveLength(0);
   });
 
+  it("forwards temporary chat calls with the same session and CSRF rules", async () => {
+    const seen = backend(() => new Response(null, { status: 204 }));
+    const { cookie, csrf } = await login();
+    const headers = { cookie, origin: SITE };
+    const path = `/api/v1/temporary-chats/${chat}`;
+    expect((await call(path, { method: "DELETE", headers })).status).toBe(403);
+    const ended = await call(path, { method: "DELETE", headers: { ...headers, "x-csrf-token": csrf } });
+    expect(ended.status).toBe(204);
+    expect(ended.headers.get("cache-control")).toBe("no-store");
+    const [forwarded] = calls(seen);
+    expect(forwarded.url).toBe(`http://127.0.0.1:8000/v1/temporary-chats/${chat}`);
+    expect((await bearer(forwarded)).path).toBe(`/v1/temporary-chats/${chat}`);
+    expect((await call("/api/v1/temporary-chats", { headers })).status).toBe(405);
+    expect(calls(seen)).toHaveLength(1);
+  });
+
   it("applies CSRF to every mutation method but not to reads", async () => {
     const seen = backend();
     const { cookie } = await login();

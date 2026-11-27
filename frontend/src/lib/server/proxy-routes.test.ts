@@ -36,6 +36,17 @@ describe("fixed proxy route table", () => {
     expect(matchRoute("TRACE", "/api/v1/me").kind).toBe("method_not_allowed");
   });
 
+  it("exposes the four temporary chat routes and no list or history route", () => {
+    expect(matchRoute("POST", "/api/v1/temporary-chats")).toMatchObject({ kind: "route", backendPath: "/v1/temporary-chats" });
+    expect(matchRoute("POST", `/api/v1/temporary-chats/${id}/turns`)).toMatchObject({ kind: "route" });
+    expect(matchRoute("GET", `/api/v1/temporary-chats/${id}/requests/${other}`)).toMatchObject({ kind: "route" });
+    expect(matchRoute("DELETE", `/api/v1/temporary-chats/${id}`)).toMatchObject({ kind: "route" });
+    for (const [method, path] of [["GET", "/api/v1/temporary-chats"], ["GET", `/api/v1/temporary-chats/${id}`], ["GET", `/api/v1/temporary-chats/${id}/turns`], ["PUT", `/api/v1/temporary-chats/${id}`]]) {
+      expect(matchRoute(method, path).kind, `${method} ${path}`).not.toBe("route");
+    }
+    expect(matchRoute("GET", `/api/v1/admin/temporary-chats/${id}`).kind).toBe("not_found");
+  });
+
   it("never lists an internal login route or a duplicate operation", () => {
     const keys = PROXY_ROUTES.map((route) => `${route.method} ${route.template}`);
     expect(new Set(keys).size).toBe(keys.length);

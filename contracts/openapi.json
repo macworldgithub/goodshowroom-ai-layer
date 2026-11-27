@@ -2979,6 +2979,131 @@
         "title": "StructuredResponse",
         "type": "object"
       },
+      "TemporaryChatData": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "const": "temporary",
+            "default": "temporary",
+            "title": "Mode",
+            "type": "string"
+          },
+          "persistence": {
+            "const": "not_saved",
+            "default": "not_saved",
+            "title": "Persistence",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "mode",
+          "persistence"
+        ],
+        "title": "TemporaryChatData",
+        "type": "object"
+      },
+      "TemporaryChatEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TemporaryChatData"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "TemporaryChatEnvelope",
+        "type": "object"
+      },
+      "TemporaryRequestData": {
+        "additionalProperties": false,
+        "description": "Memory-only recovery state. It is never stored and ends with the chat.",
+        "properties": {
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChatTurnData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "processing",
+              "committed",
+              "retry_allowed",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "result"
+        ],
+        "title": "TemporaryRequestData",
+        "type": "object"
+      },
+      "TemporaryRequestEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TemporaryRequestData"
+          },
+          "request_id": {
+            "format": "uuid",
+            "pattern": "^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "maximum": 9007199254740991,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "schema_version",
+          "data"
+        ],
+        "title": "TemporaryRequestEnvelope",
+        "type": "object"
+      },
       "TurnRequest": {
         "additionalProperties": false,
         "properties": {

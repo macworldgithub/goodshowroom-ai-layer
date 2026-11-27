@@ -47,6 +47,12 @@ from goodshowroom_ai.saved_chat_routes import (
 from goodshowroom_ai.saved_turn_routes import get_saved_request, post_saved_turn
 from goodshowroom_ai.storage.mongo import AppDatabase, ClientFactory
 from goodshowroom_ai.temporary import TemporaryMemoryStore
+from goodshowroom_ai.temporary_chat_routes import (
+    create_temporary_chat,
+    end_temporary_chat,
+    get_temporary_request,
+    post_temporary_turn,
+)
 from goodshowroom_ai.tracing import configure_tracing
 
 
@@ -65,6 +71,7 @@ def create_app(
     saved_turns=None,
     saved_chats=None,
     admin_review=None,
+    temporary_chats=None,
 ) -> FastAPI:
     """Build the app; Mongo connects only when a caller explicitly opts in."""
     configuration = settings if settings is not None else Settings()
@@ -146,6 +153,16 @@ def create_app(
                         admission=application.state.admission,
                     )
                 )
+                application.state.temporary_chats = (
+                    application.state.login_workflow.temporary_chat_service(
+                        memory=active_memory,
+                        model=OpenAIResponsesModel(
+                            configuration.openai_model, model_client
+                        ),
+                        tracing=tracing,
+                        admission=application.state.admission,
+                    )
+                )
             if active_memory is not None:
                 await active_memory.start()
             yield
@@ -182,6 +199,7 @@ def create_app(
     app.state.saved_turns = saved_turns
     app.state.saved_chats = saved_chats
     app.state.admin_review = admin_review
+    app.state.temporary_chats = temporary_chats
     app.state.execution_limits = DEFAULT_LIMITS
     app.state.admission = AdmissionController(limits=DEFAULT_LIMITS)
     app.state.cursor_codec = (
@@ -237,6 +255,18 @@ def create_app(
     )
     app.add_api_route(
         "/v1/saved-chats/{chat_id}", delete_saved_chat, methods=["DELETE"]
+    )
+    app.add_api_route("/v1/temporary-chats", create_temporary_chat, methods=["POST"])
+    app.add_api_route(
+        "/v1/temporary-chats/{chat_id}/turns", post_temporary_turn, methods=["POST"]
+    )
+    app.add_api_route(
+        "/v1/temporary-chats/{chat_id}/requests/{request_id}",
+        get_temporary_request,
+        methods=["GET"],
+    )
+    app.add_api_route(
+        "/v1/temporary-chats/{chat_id}", end_temporary_chat, methods=["DELETE"]
     )
     app.add_api_route(
         "/v1/admin/conversations", list_review_conversations, methods=["GET"]

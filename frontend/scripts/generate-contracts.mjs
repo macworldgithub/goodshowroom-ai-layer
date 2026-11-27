@@ -34,6 +34,8 @@ const names = [
   "TurnRequest",
   "ChatResultEnvelope",
   "SavedRequestEnvelope",
+  "TemporaryChatEnvelope",
+  "TemporaryRequestEnvelope",
   "SavedChatEnvelope",
   "SavedChatPageEnvelope",
   "SavedHistoryEnvelope",

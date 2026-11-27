@@ -1221,6 +1221,70 @@ export interface components {
              */
             warnings: ("incomplete_data" | "missing_data" | "question_not_supported" | "scope_required" | "disclosure_withheld")[];
         };
+        /** TemporaryChatData */
+        TemporaryChatData: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Mode
+             * @default temporary
+             * @constant
+             */
+            mode: "temporary";
+            /**
+             * Persistence
+             * @default not_saved
+             * @constant
+             */
+            persistence: "not_saved";
+            /** Version */
+            version: number;
+        };
+        /** TemporaryChatEnvelope */
+        TemporaryChatEnvelope: {
+            data: components["schemas"]["TemporaryChatData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * TemporaryRequestData
+         * @description Memory-only recovery state. It is never stored and ends with the chat.
+         */
+        TemporaryRequestData: {
+            result: components["schemas"]["ChatTurnData"] | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "processing" | "committed" | "retry_allowed" | "unknown";
+        };
+        /** TemporaryRequestEnvelope */
+        TemporaryRequestEnvelope: {
+            data: components["schemas"]["TemporaryRequestData"];
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /** TurnRequest */
         TurnRequest: {
             /** Expected Version */

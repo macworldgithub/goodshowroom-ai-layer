@@ -71,6 +71,7 @@ class _Entry:
     state: ChatQuestionState | None = None
     completed: dict[UUID, tuple[str, BuiltResponse]] = field(default_factory=dict)
     request_hashes: dict[UUID, str] = field(default_factory=dict)
+    request_versions: dict[UUID, int] = field(default_factory=dict)
     pending: _Pending | None = None
 
 
@@ -116,6 +117,7 @@ class TemporaryMemoryStore:
         entry.turns.clear()
         entry.completed.clear()
         entry.request_hashes.clear()
+        entry.request_versions.clear()
         if task is not None and not task.done() and task is not _current_task():
             task.cancel()
 
@@ -153,6 +155,16 @@ class TemporaryMemoryStore:
         return decision
 
     def _entry(self, principal, context, command):
+        entry = self._lookup(principal, context)
+        if (
+            not isinstance(command, TurnCommand)
+            or command.request_id != context.request_id
+        ):
+            raise TemporaryUnavailable()
+        return entry
+
+    def _lookup(self, principal, context):
+        """Find the live chat for this exact login. Every miss is the same error."""
         now = self._now()
         if self._closed or self._login_key(principal) in self._revoked:
             raise TemporaryUnavailable()
@@ -169,11 +181,6 @@ class TemporaryMemoryStore:
         if now >= entry.valid_until or now >= entry.last_activity + IDLE_LIMIT:
             self._drop(entry.id)
             raise TemporaryUnavailable()
-        if (
-            not isinstance(command, TurnCommand)
-            or command.request_id != context.request_id
-        ):
-            raise TemporaryUnavailable()
         return entry
 
     def _touch(self, entry, decision):
@@ -184,6 +191,13 @@ class TemporaryMemoryStore:
         )
 
     async def create(self, principal: Principal, request_id: UUID) -> TemporaryChat:
+        chat, _ = await self.create_with_status(principal, request_id)
+        return chat
+
+    async def create_with_status(
+        self, principal: Principal, request_id: UUID
+    ) -> tuple[TemporaryChat, bool]:
+        """Create or recover a chat. The flag is true only for a new chat."""
         if type(request_id) is not UUID:
             raise TemporaryUnavailable()
         decision = await self._authorize(principal, None)
@@ -193,7 +207,7 @@ class TemporaryMemoryStore:
         if identifier is not None:
             entry = self._entries.get(identifier)
             if entry is not None:
-                return TemporaryChat(id=identifier, version=entry.version)
+                return TemporaryChat(id=identifier, version=entry.version), False
         if self._closed or len(self._entries) >= self._max_chats:
             raise TemporaryUnavailable()
         now = self._now()
@@ -206,7 +220,7 @@ class TemporaryMemoryStore:
             min(login.expires_at, login.auth_expires_at, login.lease_valid_until),
         )
         self._entries[entry.id], self._creations[key] = entry, entry.id
-        return TemporaryChat(id=entry.id)
+        return TemporaryChat(id=entry.id), True
 
     async def begin_turn(self, principal, context, command) -> TemporaryAttempt:
         decision = await self._authorize(principal, context.session_id)
@@ -239,6 +253,7 @@ class TemporaryMemoryStore:
             self._drop(entry.id)
             raise TemporaryUnavailable()
         entry.request_hashes[command.request_id] = digest
+        entry.request_versions[command.request_id] = command.expected_version
         entry.pending = _Pending(command.request_id, digest, asyncio.current_task())
         self._touch(entry, decision)
         return TemporaryAttempt(status="started")
@@ -370,11 +385,48 @@ class TemporaryMemoryStore:
             raise ApiProblem(ErrorCode.VERSION_CONFLICT)
         return "retry_allowed"
 
+    async def request_outcome(
+        self, principal, context
+    ) -> tuple[
+        Literal["committed", "processing", "retry_allowed", "unknown"] | None,
+        BuiltResponse | None,
+        int,
+    ]:
+        """Recover one request by its ID alone. Nothing here is ever stored.
+
+        The result is `None` for a request this chat never saw. A request that
+        failed before it committed may run again only while the chat version is
+        unchanged. Otherwise its outcome is unknown and it never reruns silently.
+        """
+        decision = await self._authorize(principal, context.session_id)
+        entry = self._lookup(principal, context)
+        cached = entry.completed.get(context.request_id)
+        if cached is not None:
+            if cached[1].response.policy_version != decision.policy_version:
+                raise AccessDenied("Access is not allowed.")
+            return (
+                "committed",
+                cached[1],
+                entry.request_versions[context.request_id] + 1,
+            )
+        if entry.pending is not None and entry.pending.request_id == context.request_id:
+            return "processing", None, 0
+        seen = entry.request_versions.get(context.request_id)
+        if seen is None:
+            return None, None, 0
+        return ("retry_allowed" if seen == entry.version else "unknown"), None, 0
+
     async def end(self, principal, chat_id: UUID):
         await self._authorize(principal, chat_id)
         entry = self._entries.get(chat_id)
         if entry is not None and entry.principal == principal:
             self._drop(chat_id)
+
+    def discard_denied(self, principal):
+        """Drop this login's contexts after any access denial. It reveals nothing."""
+        for identifier, entry in tuple(self._entries.items()):
+            if entry.principal == principal:
+                self._drop(identifier)
 
     async def invalidate_login(self, principal):
         """Trusted verified logout callback, including already revoked logins.

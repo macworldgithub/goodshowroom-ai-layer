@@ -8,8 +8,8 @@ from goodshowroom_ai.saved_turn_routes import SavedTurnAPI
 from goodshowroom_ai.storage.chat_repository import ChatRepository
 
 
-def build_saved_turn_api(
-    database, verifier, authorization, clock, *, model, tracing, admission
+def _build_agent(
+    database, authorization, clock, *, model, tracing, admission, memory=None
 ):
     # The default metric definitions still await source and disclosure approval.
     # This startup path can produce safe notices without an operational reader.
@@ -38,5 +38,40 @@ def build_saved_turn_api(
         tracing=tracing,
         model=model,
         admission=admission,
+        memory=memory,
+    )
+    return agent
+
+
+def build_saved_turn_api(
+    database, verifier, authorization, clock, *, model, tracing, admission
+):
+    agent = _build_agent(
+        database,
+        authorization,
+        clock,
+        model=model,
+        tracing=tracing,
+        admission=admission,
     )
     return SavedTurnAPI(database, verifier, agent, clock)
+
+
+def build_temporary_chat_service(
+    database, verifier, authorization, clock, *, memory, model, tracing, admission
+):
+    """Temporary turns share the agent but use the memory store and no repository writes."""
+    from goodshowroom_ai.temporary_chat_routes import build_temporary_chat_api
+
+    agent = _build_agent(
+        database,
+        authorization,
+        clock,
+        model=model,
+        tracing=tracing,
+        admission=admission,
+        memory=memory,
+    )
+    return build_temporary_chat_api(
+        database, verifier, clock, agent=agent, memory=memory
+    )

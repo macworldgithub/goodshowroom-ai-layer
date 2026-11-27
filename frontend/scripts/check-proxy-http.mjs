@@ -57,6 +57,10 @@ try {
   check("POST good -> 200", r.status === 200, r.status);
   const posted = seen.find((s) => s.method === "POST" && s.url === "/v1/saved-chats");
   check("backend got exact body", posted?.body === JSON.stringify({ request_id: chat }));
+  r = await fetch(site + "/api/v1/temporary-chats", { method: "POST", headers: { cookie, origin: site, "x-csrf-token": token, "content-type": "application/json" }, body: JSON.stringify({ request_id: chat }) });
+  check("temporary chat create -> 200", r.status === 200 && seen.some((s) => s.url === "/v1/temporary-chats"), r.status);
+  r = await fetch(site + "/api/v1/temporary-chats", { headers: { cookie } });
+  check("no temporary chat list route", r.status === 405, r.status);
   r = await fetch(site + "/api/v1/internal/login/revoke", { method: "POST", headers: { cookie, origin: site, "x-csrf-token": token } });
   check("internal route -> 404", r.status === 404, r.status);
   r = await fetch("http://127.0.0.1:3000/api/v1/me", { headers: { cookie } });

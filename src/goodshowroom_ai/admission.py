@@ -34,6 +34,7 @@ class AdmissionController:
         self._admin_requests: dict[UUID, deque[float]] = {}
         self._saved_status_requests: dict[UUID, deque[float]] = {}
         self._saved_chat_requests: dict[UUID, deque[float]] = {}
+        self._temporary_requests: dict[UUID, deque[float]] = {}
 
     async def admit_access_request(self, user_id: UUID):
         """Rate-limit an already authenticated user before access mutations."""
@@ -48,6 +49,10 @@ class AdmissionController:
 
     async def admit_saved_status(self, user_id: UUID):
         await self._admit_access_window(user_id, self._saved_status_requests)
+
+    async def admit_temporary_request(self, user_id: UUID):
+        """Limit temporary create, status and end calls apart from saved chats."""
+        await self._admit_access_window(user_id, self._temporary_requests)
 
     async def _admit_access_window(self, user_id, windows):
         if type(user_id) is not UUID:

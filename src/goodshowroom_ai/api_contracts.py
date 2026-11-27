@@ -199,6 +199,38 @@ class SavedRequestEnvelope(CreateChatRequest):
     data: SavedRequestData
 
 
+class TemporaryRequestData(Contract):
+    """Memory-only recovery state. It is never stored and ends with the chat."""
+
+    status: Literal["processing", "committed", "retry_allowed", "unknown"]
+    result: ChatTurnData | None
+
+    @model_validator(mode="after")
+    def committed_result(self):
+        if (self.status == "committed") != (self.result is not None) or (
+            self.result is not None and self.result.mode != "temporary"
+        ):
+            raise ValueError("Only a committed temporary turn carries a result")
+        return self
+
+
+class TemporaryRequestEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: TemporaryRequestData
+
+
+class TemporaryChatData(Contract):
+    id: UUID
+    version: int = Field(ge=0, le=MAX_SAFE_INTEGER)
+    mode: Literal["temporary"] = "temporary"
+    persistence: Literal["not_saved"] = "not_saved"
+
+
+class TemporaryChatEnvelope(CreateChatRequest):
+    schema_version: Literal[1] = 1
+    data: TemporaryChatData
+
+
 class SavedChatSummary(Contract):
     id: UUID
     title: Literal["New chat"]
@@ -673,6 +705,8 @@ class AdminSettingsEnvelope(CreateChatRequest):
 
 
 PUBLIC_MODELS = (
+    TemporaryChatEnvelope,
+    TemporaryRequestEnvelope,
     SavedChatEnvelope,
     SavedChatPageEnvelope,
     SavedHistoryEnvelope,

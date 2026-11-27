@@ -43,6 +43,10 @@ export const PROXY_ROUTES: readonly ProxyRoute[] = [
   { method: "GET", template: "/saved-chats/:uuid/turns", query: [...PAGE], body: "none", timeoutMs: SHORT },
   { method: "GET", template: "/saved-chats/:uuid/requests/:uuid", query: [], body: "none", timeoutMs: SHORT },
   { method: "DELETE", template: "/saved-chats/:uuid", query: [], body: "none", timeoutMs: SHORT },
+  { method: "POST", template: "/temporary-chats", query: [], body: "json", timeoutMs: SHORT },
+  { method: "POST", template: "/temporary-chats/:uuid/turns", query: [], body: "json", timeoutMs: TURN },
+  { method: "GET", template: "/temporary-chats/:uuid/requests/:uuid", query: [], body: "none", timeoutMs: SHORT },
+  { method: "DELETE", template: "/temporary-chats/:uuid", query: [], body: "none", timeoutMs: SHORT },
   { method: "GET", template: "/admin/conversations", query: ["user_id", "since", "until", ...PAGE], body: "none", timeoutMs: SHORT },
   { method: "GET", template: "/admin/conversations/:uuid/turns", query: ["user_id", ...PAGE], body: "none", timeoutMs: SHORT },
 ];

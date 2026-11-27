@@ -114,6 +114,10 @@ class TemporaryConversationStore(Protocol):
         built: BuiltResponse,
     ) -> None: ...
 
+    async def request_outcome(
+        self, principal: Principal, context: ResponseContext
+    ) -> tuple[str | None, BuiltResponse | None, int]: ...
+
 
 class _RunChecks(RunHooks):
     def __init__(self, budget, recheck, overhead):
@@ -327,6 +331,21 @@ class PrimaryAgentService:
         return status.status, AgentTurnOutcome(
             status="committed", built=checked, turn=status.turn
         )
+
+    async def recover_temporary_request(self, principal, context):
+        """Memory-only recovery. A cached answer passes the same release checks."""
+        if (
+            self._memory is None
+            or context.mode != "temporary"
+            or context.owner_id != principal.user_id
+            or context.chat_login_id != principal.login_id
+        ):
+            raise AccessDenied("Access is not allowed.")
+        decision = await self._authorization.authorize(principal, self._action(context))
+        status, built, version = await self._memory.request_outcome(principal, context)
+        if built is not None:
+            built = await self._release(principal, context, built, decision)
+        return status, built, version
 
     async def run_turn(
         self, principal: Principal, context: ResponseContext, command: TurnCommand

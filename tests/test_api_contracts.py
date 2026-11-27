@@ -495,6 +495,10 @@ def test_openapi_export_is_offline_empty_path_and_public_only():
         "OwnScopeChoice",
         "Source",
         "StructuredResponse",
+        "TemporaryChatData",
+        "TemporaryChatEnvelope",
+        "TemporaryRequestData",
+        "TemporaryRequestEnvelope",
         "TurnRequest",
         "Visual",
     }
